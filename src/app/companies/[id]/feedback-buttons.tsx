@@ -3,6 +3,7 @@ import type { CompanyProfile } from "@/lib/columns";
 import {
   type FeedbackField,
   MANAGEMENT_SEPARATOR,
+  MAX_VALUE_LENGTH,
   type Tally,
   tallyKey,
 } from "@/lib/feedback";
@@ -72,6 +73,42 @@ export function FeedbackButtons({
   );
 }
 
+/** Shown under a value the user marked wrong: what it should be. Optional; empty removes it. */
+function CorrectionForm({
+  companyId,
+  field,
+  value,
+  saved,
+}: {
+  companyId: string;
+  field: FeedbackField;
+  value: string;
+  saved?: string;
+}) {
+  const id = `correction-${field}-${value}`;
+  return (
+    <form
+      action={setVote.bind(null, companyId, field, value)}
+      className="mt-1 flex flex-wrap items-center gap-1 text-sm"
+    >
+      <input type="hidden" name="verdict" value="wrong" />
+      <label htmlFor={id} className="text-neutral-600">
+        Richtiger Wert
+      </label>
+      <input
+        id={id}
+        name="correction"
+        defaultValue={saved ?? ""}
+        maxLength={MAX_VALUE_LENGTH}
+        className="min-w-48 flex-1 py-0.5"
+      />
+      <button type="submit" className="px-2 py-0.5 text-xs">
+        Speichern
+      </button>
+    </form>
+  );
+}
+
 /**
  * The three votable fields rendered with their buttons, keyed like `COLUMNS`. List and detail page
  * both use this, so a field gets buttons in one place.
@@ -80,22 +117,34 @@ export function votableCells(
   c: Pick<CompanyProfile, "id" | "technologiefeld" | "website" | "management">,
   votes: Map<string, Tally>,
   website: ReactNode,
+  { corrections = false }: { corrections?: boolean } = {},
 ): Record<FeedbackField, ReactNode> {
   const withVote = (
     field: FeedbackField,
     value: string,
     shown: ReactNode = value,
-  ) => (
-    <span className="mr-2 inline-block">
-      {shown}
-      <FeedbackButtons
-        companyId={c.id}
-        field={field}
-        value={value}
-        tally={votes.get(tallyKey(field, value))}
-      />
-    </span>
-  );
+  ) => {
+    const tallyFor = votes.get(tallyKey(field, value));
+    return (
+      <span className="mr-2 inline-block">
+        {shown}
+        <FeedbackButtons
+          companyId={c.id}
+          field={field}
+          value={value}
+          tally={tallyFor}
+        />
+        {corrections && tallyFor?.mine === "wrong" && (
+          <CorrectionForm
+            companyId={c.id}
+            field={field}
+            value={value}
+            saved={tallyFor.mineCorrection}
+          />
+        )}
+      </span>
+    );
+  };
   return {
     technologiefeld: c.technologiefeld
       ? withVote("technologiefeld", c.technologiefeld)

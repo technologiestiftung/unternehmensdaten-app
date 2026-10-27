@@ -21,7 +21,7 @@ const COMPANY = `
         fkz amount_eur period_from period_to topic ministry
       }
       comments(order_by: { created_at: desc }) { id body author_id created_at }
-      feedback { field_name value verdict author_id }
+      feedback { field_name value verdict correction author_id }
     }
   }`;
 
@@ -65,6 +65,7 @@ export default async function CompanyPage({
     c,
     votes,
     COLUMNS.find((col) => col.key === "website")!.render(c),
+    { corrections: true },
   );
   const fields = COLUMNS.filter((col) => col.key !== "comment").map(
     (col) => [col.label, withVotes[col.key] ?? col.render(c)] as const,
