@@ -43,6 +43,9 @@ npm install
 npm run dev                                # http://localhost:3100
 ```
 
+To run the production image instead of `npm run dev`: `docker compose up --build` (same
+`.env.local`, same port; on Docker Desktop enable host networking first, see `docker-compose.yml`).
+
 Log in as **`dev` / `dev`** (a local test user from `keycloak/datahub-realm.json` in the other
 repo). Port 3100, not 3000, so it does not collide with other local apps. The local Keycloak
 client only accepts redirects to `localhost:3100`.
