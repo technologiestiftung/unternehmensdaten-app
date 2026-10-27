@@ -11,4 +11,3 @@ services:
     environment:
       # The image defaults to 3000; the local Keycloak client only accepts redirects to 3100.
       PORT: 3100
-    restart: unless-stopped
