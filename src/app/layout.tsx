@@ -25,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             Abmelden
           </Link>
         </header>
-        <main id="main" className="mx-auto max-w-6xl px-4 pt-6 pb-16">
+        <main id="main" className="mx-auto max-w-[1920px] px-4 pt-6 pb-16">
           {children}
         </main>
       </body>

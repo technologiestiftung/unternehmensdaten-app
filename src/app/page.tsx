@@ -1,95 +1,113 @@
 import Link from "next/link";
 import { requireSession } from "@/lib/auth";
-import { formatEuro, formatNumber } from "@/lib/format";
+import { COLUMNS, type CompanyProfile, PROFILE_FIELDS } from "@/lib/columns";
+import { formatNumber } from "@/lib/format";
 import { hasura } from "@/lib/hasura";
+import { isSortKey, type ListParams, orderBy, sortOf, where, withParams } from "@/lib/query";
+import { Filters, type FilterOptions } from "./filters";
 
 const PAGE_SIZE = 50;
 
+const distinct = (field: string) =>
+  `${field}_options: companies(distinct_on: ${field}, order_by: { ${field}: asc }, where: { ${field}: { _is_null: false } }) { ${field} }`;
+
 const COMPANIES = `
-  query Companies($where: companies_bool_exp!, $limit: Int!, $offset: Int!) {
-    companies(where: $where, limit: $limit, offset: $offset, order_by: { name: asc }) {
-      id name city legal_form wz_code technologiefeld register_status funding_count funding_total_eur
+  query Companies($where: companies_bool_exp!, $order_by: [companies_order_by!], $limit: Int!, $offset: Int!) {
+    companies(where: $where, order_by: $order_by, limit: $limit, offset: $offset) {
+      ${PROFILE_FIELDS}
+      comments(limit: 1, order_by: { created_at: desc }) { body }
     }
     companies_aggregate(where: $where) { aggregate { count } }
+    ${distinct("legal_form")}
+    ${distinct("register_status")}
+    ${distinct("technologiefeld")}
   }`;
 
-type Row = {
-  id: string;
-  name: string;
-  city: string | null;
-  legal_form: string | null;
-  wz_code: string | null;
-  technologiefeld: string | null;
-  register_status: string | null;
-  funding_count: number;
-  funding_total_eur: number | null;
-};
+type Result = {
+  companies: CompanyProfile[];
+  companies_aggregate: { aggregate: { count: number } };
+} & Record<`${keyof FilterOptions}_options`, Record<string, string>[]>;
 
-export default async function CompaniesPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string; page?: string }>;
-}) {
+export default async function CompaniesPage({ searchParams }: { searchParams: Promise<ListParams> }) {
   const session = await requireSession();
-  const { q = "", page = "1" } = await searchParams;
-  const pageNo = Math.max(1, Number.parseInt(page, 10) || 1);
-  const where = q.trim() ? { name: { _ilike: `%${q.trim()}%` } } : {};
+  const params = await searchParams;
+  const pageNo = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
+  const sort = sortOf(params);
 
-  const data = await hasura<{ companies: Row[]; companies_aggregate: { aggregate: { count: number } } }>(
+  const data = await hasura<Result>(
     COMPANIES,
-    { where, limit: PAGE_SIZE, offset: (pageNo - 1) * PAGE_SIZE },
+    { where: where(params), order_by: orderBy(params), limit: PAGE_SIZE, offset: (pageNo - 1) * PAGE_SIZE },
     session.accessToken,
   );
   const total = data.companies_aggregate.aggregate.count;
-  const pageLink = (n: number) => `/?${new URLSearchParams({ ...(q && { q }), page: String(n) })}`;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const options = Object.fromEntries(
+    (["legal_form", "register_status", "technologiefeld"] as const).map((f) => [
+      f,
+      data[`${f}_options`].map((row) => row[f]),
+    ]),
+  ) as FilterOptions;
+
+  /** A header that sorts by its column; clicking the active one reverses the direction. */
+  const header = (key: string, label: string) => {
+    if (!isSortKey(key)) return label;
+    const active = sort.key === key;
+    const dir = active && sort.dir === "asc" ? "desc" : "asc";
+    return (
+      <Link href={withParams(params, { sort: key, dir, page: undefined })} className="text-neutral-900 no-underline">
+        {label} <span aria-hidden="true">{active ? (sort.dir === "asc" ? "▲" : "▼") : "↕"}</span>
+      </Link>
+    );
+  };
+  const ariaSort = (key: string) =>
+    sort.key === key ? (sort.dir === "asc" ? "ascending" : "descending") : undefined;
 
   return (
     <>
       <h1 className="mb-4 text-2xl font-bold">Unternehmen</h1>
-      <form className="mb-4 flex flex-wrap items-center gap-2" role="search" action="/">
-        <label htmlFor="q">Name enthält</label>
-        <input id="q" name="q" type="search" defaultValue={q} className="min-w-64 flex-1" />
-        <button type="submit">Suchen</button>
-      </form>
+      <Filters params={params} options={options} />
       <p className="mb-2 text-neutral-600" aria-live="polite">
-        {formatNumber(total)} Treffer, Seite {pageNo} von {Math.max(1, Math.ceil(total / PAGE_SIZE))}
+        {formatNumber(total)} Treffer, Seite {pageNo} von {pages}
       </p>
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <caption className="text-neutral-600">Sortiert nach Name</caption>
-          <thead>
+      <div className="max-h-[75vh] overflow-auto rounded border border-neutral-300">
+        <table className="w-max min-w-full border-collapse text-sm">
+          <caption className="sr-only">Unternehmen mit allen Zielfeldern</caption>
+          <thead className="sticky top-0 z-20">
             <tr>
-              <th scope="col">Name</th>
-              <th scope="col">Ort</th>
-              <th scope="col">Rechtsform</th>
-              <th scope="col">WZ</th>
-              <th scope="col">Technologiefeld</th>
-              <th scope="col">Status</th>
-              <th scope="col" className="text-right">Förderungen</th>
+              <th scope="col" aria-sort={ariaSort("name")} className="sticky left-0 z-30 w-64 min-w-64">
+                {header("name", "Name")}
+              </th>
+              {COLUMNS.map((col) => (
+                <th
+                  key={col.key}
+                  scope="col"
+                  aria-sort={ariaSort(col.key)}
+                  className={`whitespace-nowrap ${col.numeric ? "text-right" : ""}`}
+                >
+                  {header(col.key, col.label)}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {data.companies.map((c) => (
-              <tr key={c.id}>
-                <td>
+              <tr key={c.id} className="group even:bg-neutral-50">
+                <th scope="row" className="sticky left-0 z-10 w-64 min-w-64 bg-white font-normal group-even:bg-neutral-50">
                   <Link href={`/companies/${c.id}`}>{c.name}</Link>
-                </td>
-                <td>{c.city ?? "–"}</td>
-                <td>{c.legal_form ?? "–"}</td>
-                <td>{c.wz_code ?? "–"}</td>
-                <td>{c.technologiefeld ?? "–"}</td>
-                <td>{c.register_status ?? "–"}</td>
-                <td className="text-right">
-                  {c.funding_count > 0 ? `${c.funding_count} · ${formatEuro(c.funding_total_eur)}` : "–"}
-                </td>
+                </th>
+                {COLUMNS.map((col) => (
+                  <td key={col.key} className={col.numeric ? "text-right whitespace-nowrap" : undefined}>
+                    {col.long ? <div className="line-clamp-2 w-64">{col.render(c)}</div> : col.render(c)}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <nav className="mt-4 flex gap-4" aria-label="Seiten">
-        {pageNo > 1 && <Link href={pageLink(pageNo - 1)}>← Zurück</Link>}
-        {pageNo * PAGE_SIZE < total && <Link href={pageLink(pageNo + 1)}>Weiter →</Link>}
+        {pageNo > 1 && <Link href={withParams(params, { page: String(pageNo - 1) })}>← Zurück</Link>}
+        {pageNo < pages && <Link href={withParams(params, { page: String(pageNo + 1) })}>Weiter →</Link>}
       </nav>
     </>
   );
