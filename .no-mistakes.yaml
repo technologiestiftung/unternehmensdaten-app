@@ -1,0 +1,12 @@
+# Per-repo no-mistakes overrides. Optional: use /no-mistakes when `no-mistakes` is installed,
+# otherwise the normal branch + PR flow. Test settings are only honored from the main copy.
+
+# The checks CI runs, minus `next build`, which CI still covers.
+commands:
+  test: "npm ci --no-audit --no-fund && npm run lint && npm run typecheck && npm test"
+
+test:
+  instructions: |
+    Run the configured test command only. Do not start the dev server, Keycloak, Hasura or a
+    browser: the app needs the local Data Hub from the unternehmensdatenbank repo for that.
+    If a change needs coverage, add a vitest unit test next to the code (*.test.ts).
