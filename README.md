@@ -67,12 +67,36 @@ image, so one image serves staging and prod. The full list with explanations is 
 | `KEYCLOAK_CLIENT_ID` · `KEYCLOAK_CLIENT_SECRET` | the app's confidential client; the secret is secret |
 | `HASURA_GRAPHQL_URL` | Hasura's `/v1/graphql` endpoint |
 
-## Images
+## Staging and production
 
-`.github/workflows/ci.yml` checks every pull request. A push to `main` publishes
-`ghcr.io/technologiestiftung/unternehmensdaten-app:main` and `:sha-<commit>`. A tag `v1.2.3`
-publishes `:1.2.3` and `:latest`. What the Data Hub team needs from us is in
-[docs/datahub-handover.md](docs/datahub-handover.md).
+All in `.github/workflows/ci.yml`:
+
+| what you do | what happens | image | environment |
+|---|---|---|---|
+| open a pull request | lint, typecheck, test, build | — | — |
+| merge to `main` | the same, then the image is built | `:main`, `:sha-<commit>` | **staging** |
+| merge the release PR | tag `vX.Y.Z`, GitHub Release, image built from the tag after approval | `:X.Y.Z`, `:X.Y` | **production** |
+
+The release PR is opened and kept up to date by
+[release-please](https://github.com/googleapis/release-please). It reads the conventional commit
+messages since the last release (`feat:` raises the minor version, `fix:` the patch version, `feat!:`
+the major one) and writes `CHANGELOG.md`. So releasing means merging one PR. No branch to cut, no tag
+to type.
+
+Every production image tag is fixed, so the hub can pin `:1.4.0` and roll back to `:1.3.2`. There is
+no `:latest`: with two environments on one platform it would name neither.
+
+**Hotfix on an old version:** branch `release/1.4` off the tag `v1.4.0`, fix, and tag `v1.4.1` by
+hand. That tag does **not** build an image automatically. Run the steps of `production-image` by
+hand, or merge the fix to `main` and release normally (preferred).
+
+### One-time repo settings
+
+1. Settings → Environments → `production` → required reviewers: whoever approves a prod release.
+2. Settings → Actions → General → allow GitHub Actions to create and approve pull requests
+   (release-please needs it to open its PR). An org may have to allow it first.
+
+What the Data Hub team needs from us is in [docs/datahub-handover.md](docs/datahub-handover.md).
 
 ## Testing the image locally
 

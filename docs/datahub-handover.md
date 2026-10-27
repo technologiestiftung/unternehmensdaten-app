@@ -8,8 +8,8 @@ datahub@ts.berlin. Items marked **open** are questions, not decisions.
 | | |
 |---|---|
 | image | `ghcr.io/technologiestiftung/unternehmensdaten-app` |
-| staging | tag `:main`, rebuilt on every push to `main` |
-| prod | a version tag, e.g. `:1.0.0` |
+| staging | tag `:main`, rebuilt on every merge to `main` (also `:sha-<commit>` per build) |
+| prod | a fixed version tag, e.g. `:1.4.0`; `:1.4` follows the newest patch of 1.4. No `:latest` |
 | port | 3000 (HTTP) |
 | user | non-root, uid 1001 |
 | storage | none; the app is stateless |
@@ -67,3 +67,6 @@ reference is `keycloak/datahub-realm.json` in the unternehmensdatenbank repo.
 3. Does the hub have a central Hasura we add a source to, or do we get our own instance?
 4. DAG prefix per team in the shared Airflow?
 5. Is pulling from ghcr.io allowed, or must images go to a hub registry?
+6. Do you roll out new images with Keel automatically, or update tags by hand? Our suggestion:
+   staging follows `:main` (Keel `force` policy, polling), prod is pinned to an exact version
+   and changed on request.
