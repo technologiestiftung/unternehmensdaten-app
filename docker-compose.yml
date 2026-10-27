@@ -1,0 +1,13 @@
+# Runs the production image locally against the Data Hub from ../unternehmensdatenbank
+# (Keycloak :8180, Hasura :8090), with the same .env.local as `npm run dev`.
+services:
+  app:
+    build: .
+    # Host networking, so `localhost:8180` means the same Keycloak to the browser and to the app:
+    # Keycloak's KC_HOSTNAME pins the token issuer to that URL. On Docker Desktop, turn on
+    # Settings › Resources › Network › "Enable host networking".
+    network_mode: host
+    env_file: .env.local
+    environment:
+      # The image defaults to 3000; the local Keycloak client only accepts redirects to 3100.
+      PORT: 3100

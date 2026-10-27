@@ -43,6 +43,9 @@ npm install
 npm run dev                                # http://localhost:3100
 ```
 
+To run the production image instead of `npm run dev`: `docker compose up --build` (same
+`.env.local`, same port; on Docker Desktop enable host networking first, see `docker-compose.yml`).
+
 Log in as **`dev` / `dev`** (a local test user from `keycloak/datahub-realm.json` in the other
 repo). Port 3100, not 3000, so it does not collide with other local apps. The local Keycloak
 client only accepts redirects to `localhost:3100`.
@@ -117,7 +120,7 @@ docker run --rm -p 3101:3000 --env-file .env.local \
   unternehmensdaten-app
 ```
 
-A **full login** from the container does not work locally, and that is expected. The browser reaches
+A **full login** from this container does not work, and that is expected. The browser reaches
 Keycloak at `localhost`, the container reaches it at `host.docker.internal`, and the token's issuer
-can only match one of the two. On the Data Hub both use the same public hostname. Use `npm run dev`
-for the full flow.
+can only match one of the two. On the Data Hub both use the same public hostname. For the full flow
+use `npm run dev` or `docker compose up --build` (host networking, see [Run it locally](#run-it-locally)).
