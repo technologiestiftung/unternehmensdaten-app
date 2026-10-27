@@ -53,6 +53,17 @@ client only accepts redirects to `localhost:3100`.
 | `npm run build` | production build (`.next/standalone`) |
 | `docker build -t unternehmensdaten-app .` | the image the Data Hub runs |
 
+## Working with Claude Code
+
+`.claude/settings.json` wires hooks from `.claude/hooks/` (Python 3, run as `python`):
+
+- ESLint on every file Claude edits; lint, typecheck and tests before every `git commit`
+- a prompt before a new file, a commit (showing the staged diff) and a push
+- commit message bodies capped at 15 lines
+
+**Shipping:** if `no-mistakes` is installed, validate and open the PR with `/no-mistakes`
+(`.no-mistakes.yaml`). Otherwise use the normal branch + pull request flow. It is optional.
+
 ## Configuration
 
 Every setting is an environment variable read **at request time**. Nothing is baked into the
