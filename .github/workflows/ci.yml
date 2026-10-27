@@ -1,14 +1,8 @@
-name: CI and images
+name: CI and staging image
 
-# Pull request:   lint, typecheck, test, build.
-# Push to main:   the same, then the STAGING image :main and :sha-<short>.
-#                 release-please keeps a "chore(main): release x.y.z" PR open with the changelog.
-# Merging that PR: release-please tags vX.Y.Z and publishes the GitHub Release, and the
-#                 PRODUCTION image :X.Y.Z and :X.Y is built from that tag, after the
-#                 `production` environment's reviewers approve.
-#
-# The production build lives in this workflow, not in one triggered by `release: published`:
-# a release created with GITHUB_TOKEN does not trigger other workflows.
+# Pull request:  checks.
+# Push to main:  checks, then the STAGING image :main and :sha-<short>.
+# Production images come only from release.yml.
 
 on:
   pull_request:
@@ -20,23 +14,12 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: npm
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build
+  checks:
+    uses: ./.github/workflows/checks.yml
 
   staging-image:
     if: github.event_name == 'push'
-    needs: check
+    needs: checks
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -56,61 +39,6 @@ jobs:
           tags: |
             type=ref,event=branch
             type=sha,prefix=sha-
-          flavor: latest=false
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          platforms: linux/amd64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  release-please:
-    if: github.event_name == 'push'
-    needs: check
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-    outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
-    steps:
-      - id: release
-        uses: googleapis/release-please-action@v4
-        with:
-          config-file: release-please-config.json
-          manifest-file: .release-please-manifest.json
-
-  production-image:
-    needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
-    runs-on: ubuntu-latest
-    # Required reviewers are set on this environment in the repo settings.
-    environment: production
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.release-please.outputs.tag_name }}
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          # No :latest: with staging and prod on one platform it would name neither.
-          tags: |
-            type=semver,pattern={{version}},value=${{ needs.release-please.outputs.tag_name }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ needs.release-please.outputs.tag_name }}
           flavor: latest=false
       - uses: docker/build-push-action@v6
         with:

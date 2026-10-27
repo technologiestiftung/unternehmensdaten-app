@@ -69,32 +69,23 @@ image, so one image serves staging and prod. The full list with explanations is 
 
 ## Staging and production
 
-All in `.github/workflows/ci.yml`:
-
-| what you do | what happens | image | environment |
+| what you do | workflow | image | environment |
 |---|---|---|---|
-| open a pull request | lint, typecheck, test, build | — | — |
-| merge to `main` | the same, then the image is built | `:main`, `:sha-<commit>` | **staging** |
-| merge the release PR | tag `vX.Y.Z`, GitHub Release, image built from the tag after approval | `:X.Y.Z`, `:X.Y` | **production** |
+| open a pull request | `ci.yml`: lint, typecheck, test, build | — | — |
+| merge to `main` | `ci.yml`: the same, then the image is built | `:main`, `:sha-<commit>` | **staging** |
+| **Actions → Create release → Run workflow** on `main`, pick patch / minor / major | `release.yml`: checks again, tags `vX.Y.Z`, publishes a GitHub Release with notes generated from the merged PRs, builds the image after approval | `:X.Y.Z`, `:X.Y` | **production** |
 
-The release PR is opened and kept up to date by
-[release-please](https://github.com/googleapis/release-please). It reads the conventional commit
-messages since the last release (`feat:` raises the minor version, `fix:` the patch version, `feat!:`
-the major one) and writes `CHANGELOG.md`. So releasing means merging one PR. No branch to cut, no tag
-to type.
-
-Every production image tag is fixed, so the hub can pin `:1.4.0` and roll back to `:1.3.2`. There is
-no `:latest`: with two environments on one platform it would name neither.
-
-**Hotfix on an old version:** branch `release/1.4` off the tag `v1.4.0`, fix, and tag `v1.4.1` by
-hand. That tag does **not** build an image automatically. Run the steps of `production-image` by
-hand, or merge the fix to `main` and release normally (preferred).
+The next version is worked out from the existing `vX.Y.Z` tags. The workflow refuses to reuse one,
+so a production tag and its image never change. The hub can pin `:1.4.0` and roll back to
+`:1.3.2`. There is no `:latest`: with two environments on one platform it would name neither. A
+hotfix is a new patch release from `main`.
 
 ### One-time repo settings
 
 1. Settings → Environments → `production` → required reviewers: whoever approves a prod release.
-2. Settings → Actions → General → allow GitHub Actions to create and approve pull requests
-   (release-please needs it to open its PR). An org may have to allow it first.
+   Without reviewers the production image is built straight after the tag.
+2. Settings → Branches → protect `main` (pull requests only), so everything released went through
+   a reviewed PR and `ci.yml`.
 
 What the Data Hub team needs from us is in [docs/datahub-handover.md](docs/datahub-handover.md).
 
