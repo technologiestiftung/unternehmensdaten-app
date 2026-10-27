@@ -31,6 +31,7 @@ export async function setVote(
   if (!UUID.test(companyId) || !isField(field) || !isValidValue(value) || !isVerdict(verdict)) return;
   await hasura(SET_VOTE, { company_id: companyId, field_name: field, value, verdict }, session.accessToken);
   revalidatePath(`/companies/${companyId}`);
+  revalidatePath("/"); // the list can vote too, in review mode
 }
 
 export async function addComment(companyId: string, formData: FormData): Promise<void> {

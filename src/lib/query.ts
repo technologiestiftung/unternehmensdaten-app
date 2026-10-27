@@ -41,6 +41,8 @@ export type ListParams = {
   wz?: string;
   website?: string;
   fundings?: string;
+  /** "1" shows the ✓/✗ buttons in the table. */
+  review?: string;
 } & Partial<Record<keyof typeof SELECT_FILTERS, string>>;
 
 export const isSortKey = (value: string | undefined): value is SortKey => !!value && Object.hasOwn(SORTABLE, value);

@@ -1,13 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/auth";
-import {
-  type FeedbackField,
-  type FeedbackRow,
-  MANAGEMENT_SEPARATOR,
-  tally,
-  tallyKey,
-} from "@/lib/feedback";
+import { type FeedbackRow, tally } from "@/lib/feedback";
 import {
   COLUMNS,
   type CompanyProfile,
@@ -17,7 +11,7 @@ import {
 import { formatDate, formatEuro, MAX_COMMENT_LENGTH, UUID } from "@/lib/format";
 import { hasura } from "@/lib/hasura";
 import { addComment } from "./actions";
-import { FeedbackButtons } from "./feedback-buttons";
+import { votableCells } from "./feedback-buttons";
 
 const COMPANY = `
   query Company($id: uuid!) {
@@ -67,39 +61,11 @@ export default async function CompanyPage({
   if (!c) notFound();
 
   const votes = tally(c.feedback, session.userId);
-  const withVote = (
-    field: FeedbackField,
-    value: string,
-    shown: React.ReactNode = value,
-  ) => (
-    <span className="mr-3 inline-block">
-      {shown}
-      <FeedbackButtons
-        companyId={c.id}
-        field={field}
-        value={value}
-        tally={votes.get(tallyKey(field, value))}
-      />
-    </span>
+  const withVotes: Partial<Record<string, React.ReactNode>> = votableCells(
+    c,
+    votes,
+    COLUMNS.find((col) => col.key === "website")!.render(c),
   );
-
-  const withVotes: Partial<Record<string, React.ReactNode>> = {
-    technologiefeld: c.technologiefeld
-      ? withVote("technologiefeld", c.technologiefeld)
-      : "–",
-    website: c.website
-      ? withVote(
-          "website",
-          c.website,
-          COLUMNS.find((col) => col.key === "website")!.render(c),
-        )
-      : "–",
-    management: c.management
-      ? c.management
-          .split(MANAGEMENT_SEPARATOR)
-          .map((name) => <span key={name}>{withVote("management", name)}</span>)
-      : "–",
-  };
   const fields = COLUMNS.filter((col) => col.key !== "comment").map(
     (col) => [col.label, withVotes[col.key] ?? col.render(c)] as const,
   );
