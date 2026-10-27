@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@theme {
+  --color-accent: #0b5cad;
+}
+
+/* Base styles shared by every page; components use utilities. */
+@layer base {
+  body { @apply bg-white text-neutral-900 leading-normal; }
+  a { @apply text-accent underline-offset-2 hover:underline; }
+  :focus-visible { @apply outline-3 outline-offset-2 outline-accent; }
+  th, td { @apply border-b border-neutral-300 px-3 py-2 text-left align-top; }
+  th { @apply bg-neutral-100 font-semibold; }
+  input, textarea { @apply rounded border border-neutral-500 px-2.5 py-1.5; }
+  button { @apply cursor-pointer rounded bg-accent px-3 py-1.5 text-white; }
+}
