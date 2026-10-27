@@ -45,6 +45,16 @@ export type ListParams = {
   review?: string;
 } & Partial<Record<keyof typeof SELECT_FILTERS, string>>;
 
+/** Next.js search params → ListParams: the first value of a repeated key, non-strings dropped. */
+export function listParams(raw: Record<string, string | string[] | undefined>): ListParams {
+  const params: Record<string, string> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    const first = Array.isArray(value) ? value[0] : value;
+    if (typeof first === "string") params[key] = first;
+  }
+  return params;
+}
+
 export const isSortKey = (value: string | undefined): value is SortKey => !!value && Object.hasOwn(SORTABLE, value);
 
 export function sortOf(params: ListParams): { key: SortKey; dir: Direction } {

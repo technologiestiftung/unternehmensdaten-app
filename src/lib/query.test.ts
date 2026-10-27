@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { orderBy, sortOf, where, withParams } from "./query";
+import { listParams, orderBy, sortOf, where, withParams } from "./query";
 
 describe("sortOf / orderBy", () => {
   it("defaults to name ascending", () => {
@@ -50,5 +50,14 @@ describe("withParams", () => {
   it("keeps filters, replaces the changed ones and drops empty values", () => {
     expect(withParams({ q: "bau", page: "3" }, { sort: "revenue", page: undefined })).toBe("/?q=bau&sort=revenue");
     expect(withParams({}, {})).toBe("/");
+  });
+});
+
+describe("listParams", () => {
+  it("takes the first value of a repeated key, so filters do not throw", () => {
+    const params = listParams({ q: ["a", "b"], legal_form: ["GmbH", "AG"], page: "2", sort: undefined });
+    expect(params).toEqual({ q: "a", legal_form: "GmbH", page: "2" });
+    expect(where(params)).toEqual({ _and: [{ name: { _ilike: "%a%" } }, { legal_form: { _eq: "GmbH" } }] });
+    expect(withParams(params, {})).toBe("/?q=a&legal_form=GmbH&page=2");
   });
 });

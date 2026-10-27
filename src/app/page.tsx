@@ -6,7 +6,7 @@ import { formatNumber } from "@/lib/format";
 import { hasura } from "@/lib/hasura";
 import {
   isSortKey,
-  type ListParams,
+  listParams,
   orderBy,
   sortOf,
   where,
@@ -47,10 +47,10 @@ type Result = {
 export default async function CompaniesPage({
   searchParams,
 }: {
-  searchParams: Promise<ListParams>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await requireSession();
-  const params = await searchParams;
+  const params = listParams(await searchParams);
   const pageNo = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
   const sort = sortOf(params);
   // Review mode loads the votes and shows the ✓/✗ buttons; off by default to keep the list light.
