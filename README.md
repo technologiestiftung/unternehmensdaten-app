@@ -67,12 +67,27 @@ image, so one image serves staging and prod. The full list with explanations is 
 | `KEYCLOAK_CLIENT_ID` · `KEYCLOAK_CLIENT_SECRET` | the app's confidential client; the secret is secret |
 | `HASURA_GRAPHQL_URL` | Hasura's `/v1/graphql` endpoint |
 
-## Images
+## Staging and production
 
-`.github/workflows/ci.yml` checks every pull request. A push to `main` publishes
-`ghcr.io/technologiestiftung/unternehmensdaten-app:main` and `:sha-<commit>`. A tag `v1.2.3`
-publishes `:1.2.3` and `:latest`. What the Data Hub team needs from us is in
-[docs/datahub-handover.md](docs/datahub-handover.md).
+| what you do | workflow | image | environment |
+|---|---|---|---|
+| open a pull request | `ci.yml`: lint, typecheck, test, build | — | — |
+| merge to `main` | `ci.yml`: the same, then the image is built | `:main`, `:sha-<commit>` | **staging** |
+| **Actions → Create release → Run workflow** on `main`, pick patch / minor / major | `release.yml`: checks again, tags `vX.Y.Z`, publishes a GitHub Release with notes generated from the merged PRs, builds the image after approval | `:X.Y.Z`, `:X.Y` | **production** |
+
+The next version is worked out from the existing `vX.Y.Z` tags. The workflow refuses to reuse one,
+so a production tag and its image never change. The hub can pin `:1.4.0` and roll back to
+`:1.3.2`. There is no `:latest`: with two environments on one platform it would name neither. A
+hotfix is a new patch release from `main`.
+
+### One-time repo settings
+
+1. Settings → Environments → `production` → required reviewers: whoever approves a prod release.
+   Without reviewers the production image is built straight after the tag.
+2. Settings → Branches → protect `main` (pull requests only), so everything released went through
+   a reviewed PR and `ci.yml`.
+
+What the Data Hub team needs from us is in [docs/datahub-handover.md](docs/datahub-handover.md).
 
 ## Testing the image locally
 

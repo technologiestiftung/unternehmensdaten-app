@@ -1,0 +1,22 @@
+name: Checks
+
+# Lint, typecheck, test and build. Called by ci.yml for every PR and push to main, and by
+# release.yml before a release is tagged, so nothing reaches an image unchecked.
+
+on:
+  workflow_call:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
