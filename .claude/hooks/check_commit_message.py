@@ -4,12 +4,12 @@
 The habit this stops is real and it is Claude's, not the developer's: a long session produces a long message,
 because everything that happened feels worth recording. It is not. A commit message is read by
 somebody scanning `git log` months later, and the parts they need are what changed and why. The
-reasoning belongs in the code, the docs or the vault — all three of which outlive a log entry and
-none of which is reached by scrolling.
+reasoning belongs in the code or the docs — both of which outlive a log entry and neither of which
+is reached by scrolling.
 
 So the body is capped at **15 non-blank lines** and bullets are preferred over paragraphs. The cap
 is on the BODY, not the whole message: the subject line is free, and so are trailers
-(`Co-Authored-By:`, `Signed-off-by:`), because neither is prose somebody has to read through.
+(`Signed-off-by:`), because none of these is prose somebody has to read through.
 
 Blank lines are not counted, so paragraph breaks and spacing around bullet lists cost nothing —
 the cap measures how much there is to read, not how it is laid out.
@@ -41,8 +41,9 @@ MAX_BODY_LINES = 15
 _TRAILER = re.compile(r"^[A-Za-z][A-Za-z-]*:\s", re.ASCII)
 
 #: A `git commit` and nothing else. `git commit-tree` and a branch called `commit` must not match,
-#: hence the word boundary and the leading anchor after any env prefix.
-_GIT_COMMIT = re.compile(r"(^|[;&|]\s*)git\s+(-\S+\s+|--\S+(=\S+)?\s+)*commit\b")
+#: hence the word boundary and the leading anchor after any env prefix. A newline separates commands
+#: like `;`, so a commit on a later line of a multi-line command still matches.
+_GIT_COMMIT = re.compile(r"(^|[;&|\n]\s*)git\s+(-\S+\s+|--\S+(=\S+)?\s+)*commit\b")
 
 
 def _message_from(argv: list[str]) -> str | None:
@@ -143,11 +144,11 @@ def main() -> int:
         f"why. One idea per bullet.\n"
         f"\n"
         f"Not counted against the cap, so use them freely: the subject line, blank lines, and\n"
-        f"trailers such as `Co-Authored-By:`.\n"
+        f"trailers such as `Signed-off-by:`.\n"
         f"\n"
         f"The detail you are about to cut is not lost - it belongs where it will still be read:\n"
-        f"the code, a docstring, `docs/`, or the Obsidian vault. A log entry is the one place\n"
-        f"nobody scrolls back through.",
+        f"the code, a docstring or `docs/`. A log entry is the one place nobody scrolls back\n"
+        f"through.",
         file=sys.stderr,
     )
     return 2

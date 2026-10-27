@@ -61,6 +61,8 @@ client only accepts redirects to `localhost:3100`.
 - a prompt before a new file, a commit (showing the staged diff) and a push
 - commit message bodies capped at 15 lines
 
+Self-check for the hooks' git command detection: `python -m unittest discover .claude/hooks`.
+
 **Shipping:** if `no-mistakes` is installed, validate and open the PR with `/no-mistakes`
 (`.no-mistakes.yaml`). Otherwise use the normal branch + pull request flow. It is optional.
 

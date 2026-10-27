@@ -22,9 +22,9 @@ import subprocess
 import sys
 
 #: `git`, any tokens (global options and their values, e.g. `-C repo`), then `push` as a whole word
-#: at the start of a token. Anchored at the start or after a command separator. Looser than
-#: `_GIT_COMMIT` on purpose: `git -C . push` must prompt, and a false prompt costs one click.
-_GIT_PUSH = re.compile(r"(^|[;&|]\s*)git\s+(\S+\s+)*?push\b")
+#: at the start of a token. Anchored at the start or after a command separator, newline included.
+#: Looser than `_GIT_COMMIT` on purpose: `git -C . push` must prompt, and a false prompt costs one click.
+_GIT_PUSH = re.compile(r"(^|[;&|\n]\s*)git\s+(\S+\s+)*?push\b")
 
 
 def main() -> int:
