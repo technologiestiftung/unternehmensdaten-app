@@ -7,7 +7,7 @@ the chosen columns in a `cols` cookie for the next visit; a link with its own co
 **every shown value** as correct or wrong and enter the right one (also a value that is missing),
 on the company page or in the list with the pencil icon (**Werte bewerten**) above the table, and each value has an **ⓘ** that says
 where it came from: source, method, confidence, date and the page it was checked against. The page
-**Quellen** (`/quellen`, linked in the header) shows per source its latest run, the companies it covers
+**Quellen** (`/sources`, linked in the header) shows per source its latest run, the companies it covers
 and, per field, how many values it stored and how many the app shows. It runs on the
 **Berlin Data Hub** (data-hub.berlin).
 

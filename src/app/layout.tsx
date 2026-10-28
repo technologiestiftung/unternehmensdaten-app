@@ -23,7 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               Unternehmensdaten Berlin
             </Link>
             <nav aria-label="Hauptnavigation" className="flex items-center gap-6">
-              <Link href="/quellen" className="text-sm text-zinc-600 hover:text-zinc-900">
+              <Link href="/sources" className="text-sm text-zinc-600 hover:text-zinc-900">
                 Quellen
               </Link>
               <Link href="/api/auth/signout" prefetch={false} className="text-sm text-zinc-600 hover:text-zinc-900">
