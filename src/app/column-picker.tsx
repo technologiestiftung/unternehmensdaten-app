@@ -2,7 +2,7 @@
 
 import Form from "next/form";
 import { type ChangeEvent, useId } from "react";
-import type { ListParams } from "@/lib/query";
+import { COLS_COOKIE, type ListParams } from "@/lib/query";
 import { TABLE_TOOL } from "./table-tool";
 import { KeepParams } from "./keep-params";
 import { Switch } from "./switch";
@@ -29,6 +29,9 @@ export function ColumnPicker({
       event.target.checked = true;
       return;
     }
+    // Remembered for a year, so the next visit without `cols` in the URL shows the same columns.
+    const cols = Array.from(form.querySelectorAll<HTMLInputElement>("input[name=cols]:checked"), (box) => box.value);
+    document.cookie = `${COLS_COOKIE}=${encodeURIComponent(cols.join(","))}; path=/; max-age=31536000; samesite=lax`;
     form.requestSubmit();
   };
   return (
