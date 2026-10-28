@@ -4,6 +4,7 @@ import Form from "next/form";
 import Link from "next/link";
 import { type ChangeEvent, type FormEvent, useRef } from "react";
 import type { ListParams } from "@/lib/query";
+import { Switch } from "./switch";
 
 export type FilterOptions = Record<
   "legal_form" | "register_status" | "technologiefeld",
@@ -85,42 +86,18 @@ export function Filters({
           defaultValue={params.wz ?? ""}
         />
       </label>
-      <fieldset className="flex flex-col gap-1">
-        <legend className="mb-1 text-xs font-medium text-zinc-500">Nur Unternehmen</legend>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            name="website"
-            value="1"
-            defaultChecked={params.website === "1"}
-          />{" "}
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-1.5 text-xs font-medium text-zinc-500">Nur Unternehmen</legend>
+        <Switch name="website" isChecked={params.website === "1"}>
           mit Website
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            name="fundings"
-            value="1"
-            defaultChecked={params.fundings === "1"}
-          />{" "}
+        </Switch>
+        <Switch name="fundings" isChecked={params.fundings === "1"}>
           mit Förderungen
-        </label>
+        </Switch>
       </fieldset>
-      <label className="flex cursor-pointer items-center gap-2.5 self-end text-sm">
-        <input
-          type="checkbox"
-          role="switch"
-          name="review"
-          value="1"
-          defaultChecked={params.review === "1"}
-          className="peer sr-only"
-        />
-        <span
-          aria-hidden="true"
-          className="relative h-5 w-9 shrink-0 border border-zinc-500 bg-white transition-colors peer-checked:border-zinc-900 peer-checked:bg-zinc-900 peer-hover:border-zinc-600 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent after:absolute after:top-0.5 after:left-0.5 after:size-3.5 after:bg-zinc-500 after:transition-transform peer-checked:after:translate-x-4 peer-checked:after:bg-white"
-        />
+      <Switch name="review" isChecked={params.review === "1"} className="self-end">
         Werte bewerten (✓/✗ in der Tabelle)
-      </label>
+      </Switch>
       <div className="flex items-end justify-end">
         {/* Hidden, but lets Enter in a text field submit when JavaScript is off. */}
         <button type="submit" hidden>
