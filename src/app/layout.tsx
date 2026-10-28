@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <a className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-white focus:p-2" href="#main">
           Zum Inhalt springen
         </a>
-        <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white">
+        <header className="border-b border-zinc-200 bg-white">
           <div className="mx-auto flex h-14 max-w-[1920px] items-center justify-between px-6">
             <Link href="/" className="font-semibold tracking-tight text-zinc-900 hover:no-underline">
               Unternehmensdaten Berlin

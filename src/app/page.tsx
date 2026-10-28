@@ -91,7 +91,7 @@ export default async function CompaniesPage({
         className="inline-flex items-center gap-1 text-zinc-500 hover:text-zinc-900 hover:no-underline"
       >
         {label}{" "}
-        <span aria-hidden="true" className={active ? "text-zinc-900" : "text-zinc-300"}>
+        <span aria-hidden="true" className={active ? "text-zinc-900" : "text-zinc-500"}>
           {active ? (sort.dir === "asc" ? "▲" : "▼") : "↕"}
         </span>
       </Link>
