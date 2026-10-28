@@ -131,7 +131,7 @@ export default async function CompaniesPage({
         <p className="text-sm text-zinc-500 tabular-nums" aria-live="polite">
           {formatNumber(total)} Treffer, Seite {pageNo} von {pages}
         </p>
-        <ColumnPicker params={params} columns={COLUMNS} shown={new Set(columns.map((col) => col.key))} />
+        <ColumnPicker params={params} columns={COLUMNS.map(({ key, label }) => ({ key, label }))} shown={new Set(columns.map((col) => col.key))} />
       </div>
       <div className="max-h-[75vh] overflow-auto border-y border-zinc-200">
         <table className="w-max min-w-full border-collapse text-sm">

@@ -6,6 +6,16 @@ import CompaniesPage from "./page";
 
 // Integration: URL → Hasura variables → rendered list. Only the session and the network are stubbed.
 vi.mock("@/lib/auth", () => ({ requireSession: async () => ({ accessToken: "token", userId: "u1" }) }));
+// Records the props the server page hands to client components; they must cross the RSC boundary.
+const clientProps = vi.hoisted(() => [] as unknown[]);
+vi.mock("./column-picker", async (importOriginal) => {
+  const { ColumnPicker } = await importOriginal<typeof import("./column-picker")>();
+  return { ColumnPicker: (props: Parameters<typeof ColumnPicker>[0]) => (clientProps.push(props), ColumnPicker(props)) };
+});
+vi.mock("./filters", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./filters")>();
+  return { ...actual, Filters: (props: Parameters<typeof actual.Filters>[0]) => (clientProps.push(props), actual.Filters(props)) };
+});
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
@@ -79,6 +89,14 @@ describe("company list", () => {
   it("has no page number field for a single page", async () => {
     stubHasura(list(3));
     expect(await render({})).not.toContain("page-jump");
+  });
+
+  it("passes client components only serializable props (no functions)", async () => {
+    clientProps.length = 0;
+    stubHasura(list(120));
+    await render({ cols: "revenue" });
+    expect(clientProps).toHaveLength(2);
+    for (const props of clientProps) expect(() => structuredClone(props)).not.toThrow();
   });
 
   it("fails rather than showing an empty list when Hasura reports an error", async () => {
