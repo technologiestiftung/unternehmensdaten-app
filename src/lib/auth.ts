@@ -55,6 +55,7 @@ export function authOptions(): NextAuthOptions {
       }),
     ],
     secret: env("NEXTAUTH_SECRET"),
+    pages: { signIn: "/signin" },
     callbacks: {
       async jwt({ token, account }) {
         if (account) {
@@ -79,6 +80,6 @@ export function authOptions(): NextAuthOptions {
 /** The signed-in session, or a redirect to the Keycloak login. */
 export async function requireSession(): Promise<Session & { accessToken: string }> {
   const session = await getServerSession(authOptions());
-  if (!session?.accessToken || session.error) redirect("/api/auth/signin");
+  if (!session?.accessToken || session.error) redirect("/signin");
   return session as Session & { accessToken: string };
 }

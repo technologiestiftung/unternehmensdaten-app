@@ -1,4 +1,5 @@
 import Form from "next/form";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { requireSession } from "@/lib/auth";
 import { type Column, COLUMNS, NAME_COLUMN, type CompanyProfile, PROFILE_FIELDS } from "@/lib/columns";
@@ -6,6 +7,7 @@ import { type FeedbackRow, tally } from "@/lib/feedback";
 import { formatNumber } from "@/lib/format";
 import { hasura } from "@/lib/hasura";
 import {
+  COLS_COOKIE,
   isSortKey,
   listParams,
   orderBy,
@@ -97,8 +99,10 @@ export default async function CompaniesPage({
   ) as FilterOptions;
 
 
-  const columns = visibleColumns(COLUMNS, params.cols);
-  const listColumns = visibleColumns(LIST_COLUMNS, params.cols);
+  // A shared link's columns win; otherwise the ones this browser chose last time.
+  const cols = params.cols ?? (await cookies()).get(COLS_COOKIE)?.value;
+  const columns = visibleColumns(COLUMNS, cols);
+  const listColumns = visibleColumns(LIST_COLUMNS, cols);
 
   /** A header that sorts by its column; clicking the active one reverses the direction. */
   const header = (key: string, label: string) => {

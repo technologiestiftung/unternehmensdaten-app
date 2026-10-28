@@ -28,6 +28,9 @@ export type Direction = "asc" | "desc";
 
 export const PAGE_SIZE = 50;
 
+/** The cookie that remembers the chosen columns; `cols` in the URL wins over it. */
+export const COLS_COOKIE = "cols";
+
 /** Dropdown filters: URL param → view column, matched exactly. */
 export const SELECT_FILTERS = {
   legal_form: "legal_form",

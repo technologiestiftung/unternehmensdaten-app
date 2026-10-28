@@ -16,9 +16,15 @@ vi.mock("./filters", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./filters")>();
   return { ...actual, Filters: (props: Parameters<typeof actual.Filters>[0]) => (clientProps.push(props), actual.Filters(props)) };
 });
+// The browser's cookies, as next/headers would read them from the request.
+const cookieJar = vi.hoisted(() => new Map<string, string>());
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: (name: string) => (cookieJar.has(name) ? { name, value: cookieJar.get(name) } : undefined) }),
+}));
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
+  cookieJar.clear();
 });
 
 const list = (total: number, companies = [company()]) => ({
@@ -116,5 +122,17 @@ describe("company list", () => {
     expect(on).toContain('href="/?q=bei"');
     expect(on).toContain('aria-label="Werte bewerten beenden"');
     expect(html).toContain('<input type="hidden" name="review" value="1"/>'); // a new search stays in review mode
+  });
+
+  it("shows the columns this browser chose last time when the URL names none", async () => {
+    cookieJar.set("cols", "revenue,website");
+    stubHasura(list(1));
+    expect(headers(await render({}))).toBe(3);
+  });
+
+  it("lets a shared link's columns win over the remembered ones", async () => {
+    cookieJar.set("cols", "revenue,website");
+    stubHasura(list(1));
+    expect(headers(await render({ cols: "revenue" }))).toBe(2);
   });
 });
