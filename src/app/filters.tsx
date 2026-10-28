@@ -68,10 +68,11 @@ export function Filters({
       onSubmit={() => clearTimeout(typingTimer.current)}
       className="mb-6 grid grid-cols-1 gap-4 border-b border-zinc-200 pb-6 sm:grid-cols-2 lg:grid-cols-4"
     >
-      {/* Sorting and columns survive a new search; the page does not. */}
+      {/* Sorting, columns and review mode survive a new search; the page does not. */}
       {params.sort && <input type="hidden" name="sort" value={params.sort} />}
       {params.dir && <input type="hidden" name="dir" value={params.dir} />}
       {params.cols && <input type="hidden" name="cols" value={params.cols} />}
+      {params.review && <input type="hidden" name="review" value={params.review} />}
       <label className="flex flex-col gap-1.5 text-xs font-medium text-zinc-500">
         Name enthält
         <input name="q" type="search" defaultValue={params.q ?? ""} />
@@ -121,16 +122,13 @@ export function Filters({
           mit Förderungen
         </Switch>
       </fieldset>
-      <Switch name="review" isChecked={params.review === "1"} className="self-end">
-        Werte bewerten (✓/✗ in der Tabelle)
-      </Switch>
       <div className="flex items-end justify-end">
         {/* Hidden, but lets Enter in a text field submit when JavaScript is off. */}
         <button type="submit" hidden>
           Filtern
         </button>
-        {/* Clears the filters; the chosen columns are a view setting and stay. */}
-        <Link href={withParams({}, { cols: params.cols })} onClick={clearFields} className="py-2 text-sm text-zinc-500 hover:text-zinc-900">
+        {/* Clears the filters; columns and review mode are view settings and stay. */}
+        <Link href={withParams({}, { cols: params.cols, review: params.review })} onClick={clearFields} className="py-2 text-sm text-zinc-500 hover:text-zinc-900">
           Zurücksetzen
         </Link>
       </div>

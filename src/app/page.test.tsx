@@ -67,7 +67,7 @@ describe("company list", () => {
     stubHasura(list(1));
     const html = await render({ cols: "revenue,website" });
     expect(headers(html)).toBe(3); // name + two
-    expect(html).toContain(`Spalten (2 von ${COLUMNS.length})`);
+    expect(html).toContain(`Spalten auswählen (2 von ${COLUMNS.length} angezeigt)`);
     expect(html).not.toMatch(/<th scope="col"[^>]*>(<a[^>]*>)?Rechtsform/);
   });
 
@@ -102,5 +102,19 @@ describe("company list", () => {
   it("fails rather than showing an empty list when Hasura reports an error", async () => {
     stubHasura({});
     await expect(render({})).rejects.toThrow("Hasura request failed: no stub for Companies");
+  });
+
+  it("switches review mode with the pencil above the table, keeping the other params", async () => {
+    stubHasura(list(1));
+    const pencil = (html: string) => /<a[^>]*Werte bewerten[^>]*>/.exec(html)?.[0] ?? "";
+    const off = pencil(await render({ q: "bei" }));
+    expect(off).toContain('href="/?q=bei&amp;review=1"');
+    expect(off).toContain('aria-label="Werte bewerten (✓/✗ in der Tabelle)"');
+    stubHasura(list(1));
+    const html = await render({ q: "bei", review: "1" });
+    const on = pencil(html);
+    expect(on).toContain('href="/?q=bei"');
+    expect(on).toContain('aria-label="Werte bewerten beenden"');
+    expect(html).toContain('<input type="hidden" name="review" value="1"/>'); // a new search stays in review mode
   });
 });

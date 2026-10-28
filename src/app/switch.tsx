@@ -3,11 +3,14 @@ import type { ReactNode } from "react";
 /** An on/off filter: a checkbox (so forms and screen readers see one) drawn as a square switch. */
 export function Switch({
   name,
+  value = "1",
   isChecked,
   className = "",
   children,
 }: {
   name: string;
+  /** Sent when on; "1" for a yes/no filter, a column key for the column picker. */
+  value?: string;
   isChecked: boolean;
   className?: string;
   children: ReactNode;
@@ -18,7 +21,7 @@ export function Switch({
         type="checkbox"
         role="switch"
         name={name}
-        value="1"
+        value={value}
         defaultChecked={isChecked}
         className="peer sr-only"
       />
