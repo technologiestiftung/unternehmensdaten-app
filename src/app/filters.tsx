@@ -1,5 +1,10 @@
+"use client";
+
+import Form from "next/form";
 import Link from "next/link";
+import { type ChangeEvent, type FormEvent, type MouseEvent, useRef } from "react";
 import type { ListParams } from "@/lib/query";
+import { Switch } from "./switch";
 
 export type FilterOptions = Record<
   "legal_form" | "register_status" | "technologiefeld",
@@ -12,7 +17,12 @@ const SELECTS: { name: keyof FilterOptions; label: string }[] = [
   { name: "technologiefeld", label: "Technologiefeld" },
 ];
 
-/** A plain GET form: the filters live in the URL, so a filtered list can be shared as a link. */
+// Pause after the last keystroke before a text field filters, so typing a word sends one request.
+const TYPING_DELAY_MS = 400;
+
+const isCheckbox = (el: EventTarget): el is HTMLInputElement => el instanceof HTMLInputElement && el.type === "checkbox";
+
+/** A GET form: the filters live in the URL, so a filtered list can be shared as a link. */
 export function Filters({
   params,
   options,
@@ -20,10 +30,38 @@ export function Filters({
   params: ListParams;
   options: FilterOptions;
 }) {
+  const typingTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Dropdowns and checkboxes apply at once; text fields after a pause in typing (or on Enter).
+  const handleChange = (event: ChangeEvent<HTMLFormElement>) => {
+    if (event.target instanceof HTMLSelectElement || isCheckbox(event.target)) {
+      clearTimeout(typingTimer.current);
+      event.currentTarget.requestSubmit();
+    }
+  };
+  const handleInput = (event: FormEvent<HTMLFormElement>) => {
+    if (!(event.target instanceof HTMLInputElement) || isCheckbox(event.target)) return;
+    const form = event.currentTarget;
+    clearTimeout(typingTimer.current);
+    typingTimer.current = setTimeout(() => form.requestSubmit(), TYPING_DELAY_MS);
+  };
+  // The form stays mounted across client navigation, so edited fields would keep their values after a reset.
+  const clearFields = (event: MouseEvent<HTMLAnchorElement>) => {
+    clearTimeout(typingTimer.current);
+    for (const field of Array.from(event.currentTarget.closest("form")?.elements ?? [])) {
+      if (isCheckbox(field)) field.checked = false;
+      else if (field instanceof HTMLSelectElement || (field instanceof HTMLInputElement && field.type !== "hidden")) {
+        field.value = "";
+      }
+    }
+  };
   return (
-    <form
+    <Form
       role="search"
       action="/"
+      scroll={false}
+      onChange={handleChange}
+      onInput={handleInput}
+      onSubmit={() => clearTimeout(typingTimer.current)}
       className="mb-6 grid grid-cols-1 gap-4 border-b border-zinc-200 pb-6 sm:grid-cols-2 lg:grid-cols-4"
     >
       {/* Sorting survives a new search; the page does not. */}
@@ -58,42 +96,27 @@ export function Filters({
           defaultValue={params.wz ?? ""}
         />
       </label>
-      <fieldset className="flex flex-col gap-1">
-        <legend className="mb-1 text-xs font-medium text-zinc-500">Nur Unternehmen</legend>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            name="website"
-            value="1"
-            defaultChecked={params.website === "1"}
-          />{" "}
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-1.5 text-xs font-medium text-zinc-500">Nur Unternehmen</legend>
+        <Switch name="website" isChecked={params.website === "1"}>
           mit Website
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            name="fundings"
-            value="1"
-            defaultChecked={params.fundings === "1"}
-          />{" "}
+        </Switch>
+        <Switch name="fundings" isChecked={params.fundings === "1"}>
           mit Förderungen
-        </label>
+        </Switch>
       </fieldset>
-      <label className="flex items-center gap-2 self-end text-sm">
-        <input
-          type="checkbox"
-          name="review"
-          value="1"
-          defaultChecked={params.review === "1"}
-        />{" "}
+      <Switch name="review" isChecked={params.review === "1"} className="self-end">
         Werte bewerten (✓/✗ in der Tabelle)
-      </label>
-      <div className="flex items-end justify-end gap-4">
-        <button type="submit">Filtern</button>
-        <Link href="/" className="py-2 text-sm text-zinc-500 hover:text-zinc-900">
+      </Switch>
+      <div className="flex items-end justify-end">
+        {/* Hidden, but lets Enter in a text field submit when JavaScript is off. */}
+        <button type="submit" hidden>
+          Filtern
+        </button>
+        <Link href="/" onClick={clearFields} className="py-2 text-sm text-zinc-500 hover:text-zinc-900">
           Zurücksetzen
         </Link>
       </div>
-    </form>
+    </Form>
   );
 }

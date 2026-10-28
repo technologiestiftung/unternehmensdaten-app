@@ -57,3 +57,15 @@ export function evidenceList(evidence: unknown, max = 6): string[] {
   if (!Array.isArray(evidence)) return [];
   return evidence.filter((e): e is string => typeof e === "string").slice(0, max);
 }
+
+/** One row per source and method, without per-value details: for a cell that sums several values. */
+export function sourcesOf(rows: Provenance[]): Provenance[] {
+  const bySource = new Map<string, Provenance>();
+  for (const row of rows) {
+    const key = `${row.source_key}|${row.method}`;
+    if (!bySource.has(key)) {
+      bySource.set(key, { ...row, value: null, confidence: null, evidence: null, link: null, observed_at: null });
+    }
+  }
+  return [...bySource.values()];
+}

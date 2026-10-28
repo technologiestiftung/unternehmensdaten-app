@@ -8,15 +8,9 @@ import {
   type Tally,
   tallyKey,
 } from "@/lib/feedback";
-import { formatDate } from "@/lib/format";
-import {
-  evidenceList,
-  isRegisterDate,
-  methodLabel,
-  type Provenance,
-  provenanceFor,
-} from "@/lib/provenance";
+import { type Provenance, provenanceFor, sourcesOf } from "@/lib/provenance";
 import { setVote } from "./actions";
+import { ProvenanceInfo } from "./provenance-info";
 
 const ICONS = {
   correct: <path d="M4 10.5l4 4 8-9" />,
@@ -101,95 +95,26 @@ export function CorrectionForm({
   return (
     <form
       action={setVote.bind(null, companyId, field, value)}
-      className="mt-1 flex flex-wrap items-center gap-1 text-sm"
+      className="mt-2 flex w-full max-w-sm flex-col gap-1"
     >
       <input type="hidden" name="verdict" value="wrong" />
-      <label htmlFor={id} className="text-zinc-500">
+      <label htmlFor={id} className="text-xs font-medium text-zinc-500">
         {value === MISSING ? "Fehlender Wert" : "Richtiger Wert"}
       </label>
-      <input
-        id={id}
-        name="correction"
-        defaultValue={saved ?? ""}
-        required={value === MISSING}
-        maxLength={MAX_VALUE_LENGTH}
-        className="min-w-48 flex-1 py-0.5"
-      />
-      <button type="submit" className="px-2 py-1 text-xs">
-        Speichern
-      </button>
+      <span className="flex">
+        <input
+          id={id}
+          name="correction"
+          defaultValue={saved ?? ""}
+          required={value === MISSING}
+          maxLength={MAX_VALUE_LENGTH}
+          className="min-w-0 flex-1 px-2 py-1"
+        />
+        <button type="submit" className="px-3 py-1 text-xs">
+          Speichern
+        </button>
+      </span>
     </form>
-  );
-}
-
-/**
- * The ⓘ next to a value: where it came from. A native disclosure (`details`), so it needs no
- * JavaScript and works with the keyboard and screen readers. Nothing is shown when nothing is known.
- */
-export function ProvenanceInfo({
-  label,
-  rows,
-}: {
-  label: string;
-  rows: Provenance[];
-}) {
-  if (rows.length === 0) return null;
-  return (
-    <details className="relative ml-1 inline-block align-middle">
-      <summary
-        aria-label={`Herkunft: ${label}`}
-        title="Herkunft"
-        className="inline-flex size-4 cursor-pointer list-none items-center justify-center rounded-full border border-zinc-300 text-[10px] leading-none text-zinc-500 hover:bg-zinc-100 [&::-webkit-details-marker]:hidden"
-      >
-        i
-      </summary>
-      <div className="absolute left-0 z-40 mt-1 w-72 border border-zinc-200 bg-white p-3 text-left text-xs font-normal whitespace-normal text-zinc-700 shadow-sm">
-        {rows.map((row, index) => {
-          const method = methodLabel(row);
-          const evidence = evidenceList(row.evidence);
-          return (
-            <dl key={index} className="grid grid-cols-[max-content_1fr] gap-x-2 gap-y-0.5 [&+&]:mt-2 [&+&]:border-t [&+&]:border-zinc-100 [&+&]:pt-2">
-              <dt className="text-zinc-500">Quelle</dt>
-              <dd className="m-0">{row.source_name ?? row.source_key}</dd>
-              {method && (
-                <>
-                  <dt className="text-zinc-500">Methode</dt>
-                  <dd className="m-0">{method}</dd>
-                </>
-              )}
-              {row.confidence != null && (
-                <>
-                  <dt className="text-zinc-500">Konfidenz</dt>
-                  <dd className="m-0">{Math.round(row.confidence * 100)} %</dd>
-                </>
-              )}
-              {row.observed_at && (
-                <>
-                  <dt className="text-zinc-500">{isRegisterDate(row) ? "Registerstand" : "Erfasst"}</dt>
-                  <dd className="m-0">{formatDate(row.observed_at)}</dd>
-                </>
-              )}
-              {evidence.length > 0 && (
-                <>
-                  <dt className="text-zinc-500">Belege</dt>
-                  <dd className="m-0">{evidence.join(", ")}</dd>
-                </>
-              )}
-              {row.link && (
-                <>
-                  <dt className="text-zinc-500">Geprüft an</dt>
-                  <dd className="m-0 break-all">
-                    <a href={row.link} rel="noopener noreferrer nofollow" target="_blank">
-                      {row.link}
-                    </a>
-                  </dd>
-                </>
-              )}
-            </dl>
-          );
-        })}
-      </div>
-    </details>
   );
 }
 
@@ -217,7 +142,16 @@ export function FieldCell({
   max?: number;
 }): ReactNode {
   const values = column.votes?.(company);
-  if (!values || !isField(column.key)) return column.render(company);
+  if (!values || !isField(column.key)) {
+    // A sum (Förderungen) has no single value to vote on; the ⓘ names where its parts came from.
+    const sources = sourcesOf(provenance.filter((row) => row.field_name === column.key));
+    return (
+      <>
+        {column.render(company)}
+        <ProvenanceInfo label={column.label} rows={sources} />
+      </>
+    );
+  }
   const field = column.key;
   const several = column.multiValue === true;
   const more = max === undefined ? 0 : Math.max(0, values.length - max);
@@ -225,11 +159,13 @@ export function FieldCell({
     if (value === MISSING) {
       const mine = votes?.get(tallyKey(field, MISSING));
       return (
-        <span key="missing">
+        <span key="missing" className="block">
           –
           {corrections && (
-            <details className="mt-1 text-xs">
-              <summary className="cursor-pointer text-zinc-500">Wert ergänzen</summary>
+            <details className="ml-3 inline">
+              <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 [&::-webkit-details-marker]:hidden">
+                <span aria-hidden="true">+</span> Wert ergänzen
+              </summary>
               <CorrectionForm companyId={company.id} field={field} value={MISSING} saved={mine?.mineCorrection} />
             </details>
           )}

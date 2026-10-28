@@ -1,16 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { listParams, orderBy, pageNumbers, sortOf, where, withParams } from "./query";
+import { listParams, neighbours, orderBy, pageNumbers, sortOf, where, withParams } from "./query";
 
 describe("sortOf / orderBy", () => {
   it("defaults to name ascending", () => {
     expect(sortOf({})).toEqual({ key: "name", dir: "asc" });
-    expect(orderBy({})).toEqual([{ name: "asc_nulls_last" }]);
+    expect(orderBy({})).toEqual([{ name: "asc_nulls_last" }, { id: "asc" }]);
   });
 
-  it("maps a column to its view field, nulls last, name as tie-break", () => {
+  it("maps a column to its view field, nulls last, name then id as tie-break", () => {
     expect(orderBy({ sort: "fundings", dir: "desc" })).toEqual([
       { funding_total_eur: "desc_nulls_last" },
       { name: "asc" },
+      { id: "asc" },
     ]);
   });
 
@@ -78,5 +79,33 @@ describe("pageNumbers", () => {
     expect(pageNumbers(4, 10)).toEqual([1, 2, 3, 4, 5, 6, "…", 10]);
     expect(pageNumbers(5, 10)).toEqual([1, 2, 3, 4, 5, 6, 7, "…", 10]);
     expect(pageNumbers(6, 10)).toEqual([1, "…", 4, 5, 6, 7, 8, 9, 10]);
+  });
+});
+
+describe("neighbours", () => {
+  const slice = [{ id: "a", name: "A" }, { id: "b", name: "B" }, { id: "c", name: "C" }];
+
+  it("finds the companies either side, with their list positions", () => {
+    expect(neighbours(slice, "b", 10)).toEqual({
+      prev: { id: "a", name: "A", pos: 10 },
+      next: { id: "c", name: "C", pos: 12 },
+    });
+  });
+
+  it("has no prev for the first company", () => {
+    expect(neighbours(slice.slice(0, 2), "a", 0)).toEqual({ prev: undefined, next: { id: "b", name: "B", pos: 1 } });
+  });
+
+  it("shows nothing when the list changed and the company moved", () => {
+    expect(neighbours(slice, "x", 10)).toEqual({});
+  });
+});
+
+describe("withParams with a path", () => {
+  it("links a company page with the list it came from", () => {
+    expect(withParams({ q: "bau", sort: "revenue" }, { pos: "3" }, "/companies/1")).toBe(
+      "/companies/1?q=bau&sort=revenue&pos=3",
+    );
+    expect(withParams({}, {}, "/companies/1")).toBe("/companies/1");
   });
 });
