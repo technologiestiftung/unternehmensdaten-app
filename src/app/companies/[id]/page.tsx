@@ -12,8 +12,10 @@ import {
 import { formatDate, formatEuro, MAX_COMMENT_LENGTH, UUID } from "@/lib/format";
 import { hasura } from "@/lib/hasura";
 import { type Provenance, PROVENANCE_FIELDS, provenanceFor } from "@/lib/provenance";
+import { listParams, neighbours, orderBy, PAGE_SIZE, where, withParams } from "@/lib/query";
 import { addComment } from "./actions";
-import { FeedbackButtons, FieldCell, ProvenanceInfo } from "./feedback-buttons";
+import { FeedbackButtons, FieldCell } from "./feedback-buttons";
+import { ProvenanceInfo } from "./provenance-info";
 
 const COMPANY = `
   query Company($id: uuid!) {
@@ -27,6 +29,14 @@ const COMPANY = `
       provenance { ${PROVENANCE_FIELDS} }
     }
   }`;
+
+// The list around this company, with the filters and sort it was opened from.
+const NEIGHBOURS = `
+  query Neighbours($where: companies_bool_exp!, $order_by: [companies_order_by!], $offset: Int!) {
+    companies(where: $where, order_by: $order_by, offset: $offset, limit: 3) { id name }
+  }`;
+
+const NAV = "text-sm text-zinc-500 hover:text-zinc-900 hover:no-underline";
 
 type Company = Omit<CompanyProfile, "comments"> & {
   fundings: {
@@ -49,20 +59,33 @@ type Company = Omit<CompanyProfile, "comments"> & {
 
 export default async function CompanyPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await requireSession();
   const { id } = await params;
   if (!UUID.test(id)) notFound();
+  const list = listParams(await searchParams);
+  const pos = /^\d{1,9}$/.test(list.pos ?? "") ? Number(list.pos) : undefined;
+  const offset = Math.max(0, (pos ?? 0) - 1);
 
-  const { companies } = await hasura<{ companies: Company[] }>(
-    COMPANY,
-    { id },
-    session.accessToken,
-  );
+  const [{ companies }, around] = await Promise.all([
+    hasura<{ companies: Company[] }>(COMPANY, { id }, session.accessToken),
+    pos === undefined
+      ? undefined
+      : hasura<{ companies: { id: string; name: string }[] }>(
+          NEIGHBOURS,
+          { where: where(list), order_by: orderBy(list), offset },
+          session.accessToken,
+        ),
+  ]);
   const c = companies[0];
   if (!c) notFound();
+  const { prev, next } = around ? neighbours(around.companies, id, offset) : {};
+  const href = (n: { id: string; pos: number }) =>
+    withParams(list, { pos: String(n.pos) }, `/companies/${n.id}`);
 
   const votes = tally(c.feedback, session.userId);
   const cell = (column: (typeof COLUMNS)[number], withValue = true) => (
@@ -74,11 +97,28 @@ export default async function CompanyPage({
 
   return (
     <div className="mx-auto max-w-4xl">
-      <p>
-        <Link href="/" className="text-sm text-zinc-500 hover:text-zinc-900">
+      <nav aria-label="Unternehmen blättern" className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+        <Link
+          href={withParams(list, { pos: undefined, page: pos === undefined ? undefined : String(Math.floor(pos / PAGE_SIZE) + 1) })}
+          className={NAV}
+        >
           ← Alle Unternehmen
         </Link>
-      </p>
+        {(prev || next) && (
+          <span className="flex gap-6">
+            {prev && (
+              <Link href={href(prev)} className={NAV} rel="prev" title={prev.name}>
+                ‹ Vorheriges
+              </Link>
+            )}
+            {next && (
+              <Link href={href(next)} className={NAV} rel="next" title={next.name}>
+                Nächstes ›
+              </Link>
+            )}
+          </span>
+        )}
+      </nav>
       <div className="mt-3 mb-6">
         <h1 className="mr-1 inline">{c.name}</h1>
         {cell(NAME_COLUMN, false)}

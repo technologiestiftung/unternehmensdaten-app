@@ -26,6 +26,8 @@ export const SORTABLE = {
 export type SortKey = keyof typeof SORTABLE;
 export type Direction = "asc" | "desc";
 
+export const PAGE_SIZE = 50;
+
 /** Dropdown filters: URL param → view column, matched exactly. */
 export const SELECT_FILTERS = {
   legal_form: "legal_form",
@@ -43,6 +45,8 @@ export type ListParams = {
   fundings?: string;
   /** "1" shows the ✓/✗ buttons in the table. */
   review?: string;
+  /** On a company page: its 0-based position in the list it was opened from, for prev/next. */
+  pos?: string;
 } & Partial<Record<keyof typeof SELECT_FILTERS, string>>;
 
 /** Next.js search params → ListParams: the first value of a repeated key, non-strings dropped. */
@@ -85,14 +89,14 @@ export function where(params: ListParams): Record<string, unknown> {
 }
 
 /** The current params with some replaced; empty values are dropped. For links that keep the filters. */
-export function withParams(params: ListParams, changes: Partial<ListParams>): string {
+export function withParams(params: ListParams, changes: Partial<ListParams>, path = "/"): string {
   const merged = { ...params, ...changes };
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(merged)) {
     if (value) search.set(key, value);
   }
   const query = search.toString();
-  return query ? `/?${query}` : "/";
+  return query ? `${path}?${query}` : path;
 }
 
 /**
@@ -107,4 +111,21 @@ export function pageNumbers(current: number, total: number): (number | "…")[] 
     const gap = i > 0 ? n - shown[i - 1] - 1 : 0;
     return gap === 0 ? [n] : gap === 1 ? [n - 1, n] : ["…" as const, n];
   });
+}
+
+type Neighbour = { id: string; name: string; pos: number };
+
+/**
+ * The companies before and after `id`, from a slice of the list starting at `offset`. None when `id`
+ * is not in the slice (the list changed since the link was made), so prev/next never jump wrongly.
+ */
+export function neighbours(
+  slice: { id: string; name: string }[],
+  id: string,
+  offset: number,
+): { prev?: Neighbour; next?: Neighbour } {
+  const index = slice.findIndex((c) => c.id === id);
+  if (index < 0) return {};
+  const at = (i: number) => slice[i] && { ...slice[i], pos: offset + i };
+  return { prev: at(index - 1), next: at(index + 1) };
 }

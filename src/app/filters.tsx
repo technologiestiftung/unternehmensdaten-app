@@ -1,4 +1,8 @@
+"use client";
+
+import Form from "next/form";
 import Link from "next/link";
+import { type ChangeEvent, type FormEvent, useRef } from "react";
 import type { ListParams } from "@/lib/query";
 
 export type FilterOptions = Record<
@@ -12,7 +16,12 @@ const SELECTS: { name: keyof FilterOptions; label: string }[] = [
   { name: "technologiefeld", label: "Technologiefeld" },
 ];
 
-/** A plain GET form: the filters live in the URL, so a filtered list can be shared as a link. */
+// Pause after the last keystroke before a text field filters, so typing a word sends one request.
+const TYPING_DELAY_MS = 400;
+
+const isCheckbox = (el: EventTarget) => el instanceof HTMLInputElement && el.type === "checkbox";
+
+/** A GET form: the filters live in the URL, so a filtered list can be shared as a link. */
 export function Filters({
   params,
   options,
@@ -20,10 +29,28 @@ export function Filters({
   params: ListParams;
   options: FilterOptions;
 }) {
+  const typingTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Dropdowns and checkboxes apply at once; text fields after a pause in typing (or on Enter).
+  const handleChange = (event: ChangeEvent<HTMLFormElement>) => {
+    if (event.target instanceof HTMLSelectElement || isCheckbox(event.target)) {
+      clearTimeout(typingTimer.current);
+      event.currentTarget.requestSubmit();
+    }
+  };
+  const handleInput = (event: FormEvent<HTMLFormElement>) => {
+    if (!(event.target instanceof HTMLInputElement) || isCheckbox(event.target)) return;
+    const form = event.currentTarget;
+    clearTimeout(typingTimer.current);
+    typingTimer.current = setTimeout(() => form.requestSubmit(), TYPING_DELAY_MS);
+  };
   return (
-    <form
+    <Form
       role="search"
       action="/"
+      scroll={false}
+      onChange={handleChange}
+      onInput={handleInput}
+      onSubmit={() => clearTimeout(typingTimer.current)}
       className="mb-6 grid grid-cols-1 gap-4 border-b border-zinc-200 pb-6 sm:grid-cols-2 lg:grid-cols-4"
     >
       {/* Sorting survives a new search; the page does not. */}
@@ -94,6 +121,6 @@ export function Filters({
           Zurücksetzen
         </Link>
       </div>
-    </form>
+    </Form>
   );
 }

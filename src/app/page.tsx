@@ -8,6 +8,7 @@ import {
   isSortKey,
   listParams,
   orderBy,
+  PAGE_SIZE,
   pageNumbers,
   sortOf,
   where,
@@ -17,7 +18,6 @@ import { FieldCell } from "./companies/[id]/feedback-buttons";
 import { type Provenance, PROVENANCE_FIELDS } from "@/lib/provenance";
 import { Filters, type FilterOptions } from "./filters";
 
-const PAGE_SIZE = 50;
 const PAGER =
   "block min-w-9 border border-transparent px-2 py-1.5 text-center text-zinc-600 hover:border-zinc-300 hover:text-zinc-900 hover:no-underline";
 
@@ -148,7 +148,7 @@ export default async function CompaniesPage({
             </tr>
           </thead>
           <tbody>
-            {data.companies.map((c) => {
+            {data.companies.map((c, index) => {
               const votes = review ? tally(c.feedback ?? [], session.userId) : undefined;
               return (
                 <tr key={c.id} className="group hover:bg-zinc-50">
@@ -156,7 +156,15 @@ export default async function CompaniesPage({
                     scope="row"
                     className="sticky left-0 z-10 w-64 min-w-64 bg-white font-medium group-hover:bg-zinc-50"
                   >
-                    <Link href={`/companies/${c.id}`}>{c.name}</Link>
+                    <Link
+                      href={withParams(
+                        params,
+                        { page: undefined, pos: String((pageNo - 1) * PAGE_SIZE + index) },
+                        `/companies/${c.id}`,
+                      )}
+                    >
+                      {c.name}
+                    </Link>
                   </th>
                   {LIST_COLUMNS.map((col) => (
                     <td
