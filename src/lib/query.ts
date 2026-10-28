@@ -49,13 +49,18 @@ export type ListParams = {
   source?: string;
   /** On a company page: its 0-based position in the list it was opened from, for prev/next. */
   pos?: string;
+  /** Comma-separated keys of the columns to show; absent (or none valid) shows all. */
+  cols?: string;
 } & Partial<Record<keyof typeof SELECT_FILTERS, string>>;
 
-/** Next.js search params → ListParams: the first value of a repeated key, non-strings dropped. */
+/**
+ * Next.js search params → ListParams: the first value of a repeated key, non-strings dropped. `cols`
+ * is the exception: the column checkboxes send one `cols` per column, joined here with commas.
+ */
 export function listParams(raw: Record<string, string | string[] | undefined>): ListParams {
   const params: Record<string, string> = {};
   for (const [key, value] of Object.entries(raw)) {
-    const first = Array.isArray(value) ? value[0] : value;
+    const first = Array.isArray(value) ? (key === "cols" ? value.join(",") : value[0]) : value;
     if (typeof first === "string") params[key] = first;
   }
   return params;
@@ -132,4 +137,11 @@ export function neighbours(
   if (index < 0) return {};
   const at = (i: number) => slice[i] && { ...slice[i], pos: offset + i };
   return { prev: at(index - 1), next: at(index + 1) };
+}
+
+/** The columns `cols` asks for, in their usual order; all of them when it names none that exist. */
+export function visibleColumns<T extends { key: string }>(columns: T[], cols: string | undefined): T[] {
+  const wanted = new Set(cols?.split(","));
+  const shown = columns.filter((col) => wanted.has(col.key));
+  return shown.length > 0 ? shown : columns;
 }

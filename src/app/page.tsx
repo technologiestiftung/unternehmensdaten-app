@@ -1,3 +1,4 @@
+import Form from "next/form";
 import Link from "next/link";
 import { requireSession } from "@/lib/auth";
 import { type Column, COLUMNS, NAME_COLUMN, type CompanyProfile, PROFILE_FIELDS } from "@/lib/columns";
@@ -11,12 +12,15 @@ import {
   PAGE_SIZE,
   pageNumbers,
   sortOf,
+  visibleColumns,
   where,
   withParams,
 } from "@/lib/query";
 import { FieldCell } from "./companies/[id]/feedback-buttons";
 import { type Provenance, PROVENANCE_FIELDS } from "@/lib/provenance";
+import { ColumnPicker } from "./column-picker";
 import { Filters, type FilterOptions, type SourceOption } from "./filters";
+import { KeepParams } from "./keep-params";
 
 const PAGER =
   "block min-w-9 border border-transparent px-2 py-1.5 text-center text-zinc-600 hover:border-zinc-300 hover:text-zinc-900 hover:no-underline";
@@ -92,6 +96,9 @@ export default async function CompaniesPage({
   ) as FilterOptions;
 
 
+  const columns = visibleColumns(COLUMNS, params.cols);
+  const listColumns = visibleColumns(LIST_COLUMNS, params.cols);
+
   /** A header that sorts by its column; clicking the active one reverses the direction. */
   const header = (key: string, label: string) => {
     if (!isSortKey(key)) return label;
@@ -120,9 +127,12 @@ export default async function CompaniesPage({
     <>
       <h1 className="mb-6">Unternehmen</h1>
       <Filters params={params} options={options} sources={data.sources} />
-      <p className="mb-3 text-sm text-zinc-500 tabular-nums" aria-live="polite">
-        {formatNumber(total)} Treffer, Seite {pageNo} von {pages}
-      </p>
+      <div className="mb-3 flex items-baseline justify-between gap-4">
+        <p className="text-sm text-zinc-500 tabular-nums" aria-live="polite">
+          {formatNumber(total)} Treffer, Seite {pageNo} von {pages}
+        </p>
+        <ColumnPicker params={params} columns={COLUMNS.map(({ key, label }) => ({ key, label }))} shown={new Set(columns.map((col) => col.key))} />
+      </div>
       <div className="max-h-[75vh] overflow-auto border-y border-zinc-200">
         <table className="w-max min-w-full border-collapse text-sm">
           <caption className="sr-only">
@@ -137,7 +147,7 @@ export default async function CompaniesPage({
               >
                 {header("name", "Name")}
               </th>
-              {COLUMNS.map((col) => (
+              {columns.map((col) => (
                 <th
                   key={col.key}
                   scope="col"
@@ -169,7 +179,7 @@ export default async function CompaniesPage({
                     </Link>
                     <FieldCell company={c} column={NAME_COLUMN} votes={votes} provenance={c.provenance} withValue={false} />
                   </th>
-                  {LIST_COLUMNS.map((col) => (
+                  {listColumns.map((col) => (
                     <td
                       key={col.key}
                       className={
@@ -191,7 +201,7 @@ export default async function CompaniesPage({
           </tbody>
         </table>
       </div>
-      <nav aria-label="Seiten" className="mt-6">
+      <nav aria-label="Seiten" className="mt-6 flex flex-wrap items-center justify-between gap-4">
         <ul className="flex flex-wrap items-center gap-1 text-sm tabular-nums">
           {pageNo > 1 && (
             <li>
@@ -235,6 +245,24 @@ export default async function CompaniesPage({
             </li>
           )}
         </ul>
+        {pages > 1 && (
+          <Form action="/" scroll={false} className="flex items-center gap-2 text-sm text-zinc-500">
+            <KeepParams params={params} except={["page"]} />
+            <label htmlFor="page-jump">Seite</label>
+            {/* Keyed by page, so it shows the current page again after a pager link was used. */}
+            <input
+              key={pageNo}
+              id="page-jump"
+              name="page"
+              type="number"
+              min={1}
+              max={pages}
+              defaultValue={pageNo}
+              className="w-20 px-2 py-1.5 tabular-nums"
+            />
+            <span className="tabular-nums">von {pages}</span>
+          </Form>
+        )}
       </nav>
     </>
   );

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { listParams, neighbours, orderBy, pageNumbers, sortOf, where, withParams } from "./query";
+import { listParams, neighbours, orderBy, pageNumbers, sortOf, visibleColumns, where, withParams } from "./query";
 
 describe("sortOf / orderBy", () => {
   it("defaults to name ascending", () => {
@@ -62,6 +62,25 @@ describe("listParams", () => {
     expect(params).toEqual({ q: "a", legal_form: "GmbH", page: "2" });
     expect(where(params)).toEqual({ _and: [{ name: { _ilike: "%a%" } }, { legal_form: { _eq: "GmbH" } }] });
     expect(withParams(params, {})).toBe("/?q=a&legal_form=GmbH&page=2");
+  });
+
+  it("joins the repeated cols of the column checkboxes", () => {
+    expect(listParams({ cols: ["revenue", "website"] })).toEqual({ cols: "revenue,website" });
+    expect(listParams({ cols: "revenue,website" })).toEqual({ cols: "revenue,website" });
+  });
+});
+
+describe("visibleColumns", () => {
+  const columns = [{ key: "revenue" }, { key: "website" }, { key: "cluster" }];
+
+  it("keeps the asked-for columns in their usual order", () => {
+    expect(visibleColumns(columns, "cluster,revenue")).toEqual([{ key: "revenue" }, { key: "cluster" }]);
+  });
+
+  it("shows all columns when none or only unknown ones are asked for", () => {
+    expect(visibleColumns(columns, undefined)).toEqual(columns);
+    expect(visibleColumns(columns, "")).toEqual(columns);
+    expect(visibleColumns(columns, "salary,__proto__")).toEqual(columns);
   });
 });
 

@@ -3,7 +3,7 @@
 import Form from "next/form";
 import Link from "next/link";
 import { type ChangeEvent, type FormEvent, type MouseEvent, useRef } from "react";
-import type { ListParams } from "@/lib/query";
+import { type ListParams, withParams } from "@/lib/query";
 import { Switch } from "./switch";
 
 export type FilterOptions = Record<
@@ -68,9 +68,10 @@ export function Filters({
       onSubmit={() => clearTimeout(typingTimer.current)}
       className="mb-6 grid grid-cols-1 gap-4 border-b border-zinc-200 pb-6 sm:grid-cols-2 lg:grid-cols-4"
     >
-      {/* Sorting survives a new search; the page does not. */}
+      {/* Sorting and columns survive a new search; the page does not. */}
       {params.sort && <input type="hidden" name="sort" value={params.sort} />}
       {params.dir && <input type="hidden" name="dir" value={params.dir} />}
+      {params.cols && <input type="hidden" name="cols" value={params.cols} />}
       <label className="flex flex-col gap-1.5 text-xs font-medium text-zinc-500">
         Name enthält
         <input name="q" type="search" defaultValue={params.q ?? ""} />
@@ -128,7 +129,8 @@ export function Filters({
         <button type="submit" hidden>
           Filtern
         </button>
-        <Link href="/" onClick={clearFields} className="py-2 text-sm text-zinc-500 hover:text-zinc-900">
+        {/* Clears the filters; the chosen columns are a view setting and stay. */}
+        <Link href={withParams({}, { cols: params.cols })} onClick={clearFields} className="py-2 text-sm text-zinc-500 hover:text-zinc-900">
           Zurücksetzen
         </Link>
       </div>
