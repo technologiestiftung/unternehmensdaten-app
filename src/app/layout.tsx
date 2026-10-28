@@ -22,9 +22,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/" className="font-semibold tracking-tight text-zinc-900 hover:no-underline">
               Unternehmensdaten Berlin
             </Link>
-            <Link href="/api/auth/signout" prefetch={false} className="text-sm text-zinc-600 hover:text-zinc-900">
-              Abmelden
-            </Link>
+            <nav aria-label="Hauptnavigation" className="flex items-center gap-6">
+              <Link href="/quellen" className="text-sm text-zinc-600 hover:text-zinc-900">
+                Quellen
+              </Link>
+              <Link href="/api/auth/signout" prefetch={false} className="text-sm text-zinc-600 hover:text-zinc-900">
+                Abmelden
+              </Link>
+            </nav>
           </div>
         </header>
         <main id="main" className="mx-auto max-w-[1920px] px-6 pt-8 pb-16">
