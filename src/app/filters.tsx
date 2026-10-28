@@ -2,7 +2,7 @@
 
 import Form from "next/form";
 import Link from "next/link";
-import { type ChangeEvent, type FormEvent, useRef } from "react";
+import { type ChangeEvent, type FormEvent, type MouseEvent, useRef } from "react";
 import type { ListParams } from "@/lib/query";
 import { Switch } from "./switch";
 
@@ -20,7 +20,7 @@ const SELECTS: { name: keyof FilterOptions; label: string }[] = [
 // Pause after the last keystroke before a text field filters, so typing a word sends one request.
 const TYPING_DELAY_MS = 400;
 
-const isCheckbox = (el: EventTarget) => el instanceof HTMLInputElement && el.type === "checkbox";
+const isCheckbox = (el: EventTarget): el is HTMLInputElement => el instanceof HTMLInputElement && el.type === "checkbox";
 
 /** A GET form: the filters live in the URL, so a filtered list can be shared as a link. */
 export function Filters({
@@ -43,6 +43,16 @@ export function Filters({
     const form = event.currentTarget;
     clearTimeout(typingTimer.current);
     typingTimer.current = setTimeout(() => form.requestSubmit(), TYPING_DELAY_MS);
+  };
+  // The form stays mounted across client navigation, so edited fields would keep their values after a reset.
+  const clearFields = (event: MouseEvent<HTMLAnchorElement>) => {
+    clearTimeout(typingTimer.current);
+    for (const field of Array.from(event.currentTarget.closest("form")?.elements ?? [])) {
+      if (isCheckbox(field)) field.checked = false;
+      else if (field instanceof HTMLSelectElement || (field instanceof HTMLInputElement && field.type !== "hidden")) {
+        field.value = "";
+      }
+    }
   };
   return (
     <Form
@@ -103,7 +113,7 @@ export function Filters({
         <button type="submit" hidden>
           Filtern
         </button>
-        <Link href="/" className="py-2 text-sm text-zinc-500 hover:text-zinc-900">
+        <Link href="/" onClick={clearFields} className="py-2 text-sm text-zinc-500 hover:text-zinc-900">
           Zurücksetzen
         </Link>
       </div>

@@ -70,7 +70,7 @@ export function sortOf(params: ListParams): { key: SortKey; dir: Direction } {
 export function orderBy(params: ListParams): Record<string, string>[] {
   const { key, dir } = sortOf(params);
   const primary = { [SORTABLE[key]]: `${dir}_nulls_last` };
-  return key === "name" ? [primary] : [primary, { name: "asc" }];
+  return key === "name" ? [primary, { id: "asc" }] : [primary, { name: "asc" }, { id: "asc" }];
 }
 
 export function where(params: ListParams): Record<string, unknown> {

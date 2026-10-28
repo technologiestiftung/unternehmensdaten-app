@@ -4,13 +4,14 @@ import { listParams, neighbours, orderBy, pageNumbers, sortOf, where, withParams
 describe("sortOf / orderBy", () => {
   it("defaults to name ascending", () => {
     expect(sortOf({})).toEqual({ key: "name", dir: "asc" });
-    expect(orderBy({})).toEqual([{ name: "asc_nulls_last" }]);
+    expect(orderBy({})).toEqual([{ name: "asc_nulls_last" }, { id: "asc" }]);
   });
 
-  it("maps a column to its view field, nulls last, name as tie-break", () => {
+  it("maps a column to its view field, nulls last, name then id as tie-break", () => {
     expect(orderBy({ sort: "fundings", dir: "desc" })).toEqual([
       { funding_total_eur: "desc_nulls_last" },
       { name: "asc" },
+      { id: "asc" },
     ]);
   });
 
