@@ -1,8 +1,25 @@
-/** Fields users can vote on. Must match the CHECK on extraction_feedback.field_name (V23). */
+/**
+ * Fields users can vote on: every field the app shows, under its column key. Must match the CHECK on
+ * extraction_feedback.field_name (unternehmensdatenbank, V3).
+ */
 export const FEEDBACK_FIELDS = [
-  "management",
-  "website",
+  "name",
+  "address",
+  "legal_form",
+  "register_status",
+  "wz_code",
+  "established_at",
+  "employee_count",
+  "revenue",
+  "fundings",
+  "cluster",
   "technologiefeld",
+  "website",
+  "management",
+  "business_purpose",
+  "deeptech",
+  "is_ai",
+  "amazon_effect",
 ] as const;
 export type FeedbackField = (typeof FEEDBACK_FIELDS)[number];
 
@@ -11,6 +28,9 @@ export type Verdict = (typeof VERDICTS)[number];
 
 /** Same limit as the CHECK on extraction_feedback.value. */
 export const MAX_VALUE_LENGTH = 500;
+
+/** The value of a vote on a field that showed nothing: "this is missing, it should be …". */
+export const MISSING = "";
 
 /** `v_company_profile.management` joins the current managers with this separator. */
 export const MANAGEMENT_SEPARATOR = "; ";
@@ -58,8 +78,8 @@ export const isField = (value: string): value is FeedbackField =>
 export const isVerdict = (value: string): value is Verdict =>
   (VERDICTS as readonly string[]).includes(value);
 
-export const isValidValue = (value: string) =>
-  value.length > 0 && value.length <= MAX_VALUE_LENGTH;
+/** Empty is valid: it is a vote on a field that showed nothing (`MISSING`). */
+export const isValidValue = (value: string) => value.length <= MAX_VALUE_LENGTH;
 
 /**
  * What to write for a vote, given the form. A ✓ always clears the correction (the database allows
@@ -69,10 +89,17 @@ export const isValidValue = (value: string) =>
 export function voteChange(
   verdict: Verdict,
   correctionField: string | null,
+  value?: string,
 ): {
   correction: string | null;
   updateColumns: ("verdict" | "correction")[];
 } | null {
+  // A missing value can only be reported as missing, and only together with what it should be.
+  if (value === MISSING) {
+    const correction = correctionField?.trim() ?? "";
+    if (verdict !== "wrong" || !correction || correction.length > MAX_VALUE_LENGTH) return null;
+    return { correction, updateColumns: ["verdict", "correction"] };
+  }
   if (verdict === "correct")
     return { correction: null, updateColumns: ["verdict", "correction"] };
   if (correctionField === null)

@@ -1,17 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/auth";
-import { type FeedbackRow, tally } from "@/lib/feedback";
+import { type FeedbackRow, tally, tallyKey } from "@/lib/feedback";
 import {
   COLUMNS,
   type CompanyProfile,
+  NAME_COLUMN,
   PROFILE_FIELDS,
   text,
 } from "@/lib/columns";
 import { formatDate, formatEuro, MAX_COMMENT_LENGTH, UUID } from "@/lib/format";
 import { hasura } from "@/lib/hasura";
+import { type Provenance, PROVENANCE_FIELDS, provenanceFor } from "@/lib/provenance";
 import { addComment } from "./actions";
-import { votableCells } from "./feedback-buttons";
+import { FeedbackButtons, FieldCell, ProvenanceInfo } from "./feedback-buttons";
 
 const COMPANY = `
   query Company($id: uuid!) {
@@ -22,6 +24,7 @@ const COMPANY = `
       }
       comments(order_by: { created_at: desc }) { id body author_id created_at }
       feedback { field_name value verdict correction author_id }
+      provenance { ${PROVENANCE_FIELDS} }
     }
   }`;
 
@@ -41,6 +44,7 @@ type Company = Omit<CompanyProfile, "comments"> & {
     created_at: string;
   }[];
   feedback: FeedbackRow[];
+  provenance: Provenance[];
 };
 
 export default async function CompanyPage({
@@ -61,14 +65,11 @@ export default async function CompanyPage({
   if (!c) notFound();
 
   const votes = tally(c.feedback, session.userId);
-  const withVotes: Partial<Record<string, React.ReactNode>> = votableCells(
-    c,
-    votes,
-    COLUMNS.find((col) => col.key === "website")!.render(c),
-    { corrections: true },
+  const cell = (column: (typeof COLUMNS)[number], withValue = true) => (
+    <FieldCell company={c} column={column} votes={votes} provenance={c.provenance} corrections withValue={withValue} />
   );
   const fields = COLUMNS.filter((col) => col.key !== "comment").map(
-    (col) => [col.label, withVotes[col.key] ?? col.render(c)] as const,
+    (col) => [col.label, cell(col)] as const,
   );
 
   return (
@@ -78,7 +79,10 @@ export default async function CompanyPage({
           ← Alle Unternehmen
         </Link>
       </p>
-      <h1 className="mt-3 mb-6">{c.name}</h1>
+      <div className="mt-3 mb-6">
+        <h1 className="mr-1 inline">{c.name}</h1>
+        {cell(NAME_COLUMN, false)}
+      </div>
       <dl className="grid grid-cols-[minmax(10rem,max-content)_1fr] border-t border-zinc-200 text-sm">
         {fields.map(([label, value]) => (
           <div key={label} className="contents [&:last-child>*]:border-0">
@@ -109,6 +113,9 @@ export default async function CompanyPage({
                 <th scope="col" className="text-right">
                   Betrag
                 </th>
+                <th scope="col">
+                  <span className="sr-only">Herkunft und Bewertung</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -122,6 +129,18 @@ export default async function CompanyPage({
                   <td>{text(f.ministry)}</td>
                   <td className="text-right whitespace-nowrap tabular-nums">
                     {formatEuro(f.amount_eur)}
+                  </td>
+                  <td className="whitespace-nowrap">
+                    <ProvenanceInfo
+                      label={`Förderung ${f.fkz}`}
+                      rows={provenanceFor(c.provenance, "fundings", f.fkz, true)}
+                    />
+                    <FeedbackButtons
+                      companyId={c.id}
+                      field="fundings"
+                      value={f.fkz}
+                      tally={votes.get(tallyKey("fundings", f.fkz))}
+                    />
                   </td>
                 </tr>
               ))}

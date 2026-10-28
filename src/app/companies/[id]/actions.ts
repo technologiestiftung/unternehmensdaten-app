@@ -43,7 +43,7 @@ export async function setVote(
   )
     return;
   const raw = formData.get("correction");
-  const change = voteChange(verdict, raw === null ? null : String(raw));
+  const change = voteChange(verdict, raw === null ? null : String(raw), value);
   if (!change) return;
   await hasura(
     SET_VOTE,
