@@ -164,13 +164,13 @@ export default async function CompaniesPage({
                         col.numeric ? "text-right whitespace-nowrap tabular-nums" : undefined
                       }
                     >
-                      {col.multiValue && !review ? (
-                        <div className="line-clamp-2 w-64">
-                          <FieldCell company={c} column={col} provenance={c.provenance} />
-                        </div>
-                      ) : (
-                        <FieldCell company={c} column={col} votes={votes} provenance={c.provenance} />
-                      )}
+                      <FieldCell
+                        company={c}
+                        column={col}
+                        votes={votes}
+                        provenance={c.provenance}
+                        max={review ? undefined : 3}
+                      />
                     </td>
                   ))}
                 </tr>

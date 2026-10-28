@@ -197,7 +197,7 @@ export function ProvenanceInfo({
  * One cell: the value(s), each with its origin (ⓘ) and, with `votes`, ✓/✗. Used by the list and the
  * detail page, so every field gets the same controls in one place. An empty field shows "–"; with
  * `corrections`, it offers a form to say what is missing. `withValue={false}` shows the controls only
- * (for the name, whose value is the page heading).
+ * (for the name, whose value is the page heading). `max` shows only the first values and counts the rest.
  */
 export function FieldCell({
   company,
@@ -206,6 +206,7 @@ export function FieldCell({
   provenance,
   corrections = false,
   withValue = true,
+  max,
 }: {
   company: CompanyProfile;
   column: Column;
@@ -213,12 +214,14 @@ export function FieldCell({
   provenance: Provenance[];
   corrections?: boolean;
   withValue?: boolean;
+  max?: number;
 }): ReactNode {
   const values = column.votes?.(company);
   if (!values || !isField(column.key)) return column.render(company);
   const field = column.key;
   const several = column.multiValue === true;
-  return values.map((value) => {
+  const more = max === undefined ? 0 : Math.max(0, values.length - max);
+  const cells = values.slice(0, values.length - more).map((value) => {
     if (value === MISSING) {
       const mine = votes?.get(tallyKey(field, MISSING));
       return (
@@ -245,4 +248,5 @@ export function FieldCell({
       </span>
     );
   });
+  return more > 0 ? [...cells, <span key="more" className="text-zinc-500">+ {more} weitere</span>] : cells;
 }
