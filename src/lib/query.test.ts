@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { listParams, orderBy, sortOf, where, withParams } from "./query";
+import { listParams, orderBy, pageNumbers, sortOf, where, withParams } from "./query";
 
 describe("sortOf / orderBy", () => {
   it("defaults to name ascending", () => {
@@ -59,5 +59,24 @@ describe("listParams", () => {
     expect(params).toEqual({ q: "a", legal_form: "GmbH", page: "2" });
     expect(where(params)).toEqual({ _and: [{ name: { _ilike: "%a%" } }, { legal_form: { _eq: "GmbH" } }] });
     expect(withParams(params, {})).toBe("/?q=a&legal_form=GmbH&page=2");
+  });
+});
+
+describe("pageNumbers", () => {
+  it("shows every page when there are few", () => {
+    expect(pageNumbers(1, 1)).toEqual([1]);
+    expect(pageNumbers(2, 4)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("keeps first, last and the current neighbourhood, with gaps", () => {
+    expect(pageNumbers(1, 59)).toEqual([1, 2, 3, "…", 59]);
+    expect(pageNumbers(30, 59)).toEqual([1, "…", 28, 29, 30, 31, 32, "…", 59]);
+    expect(pageNumbers(59, 59)).toEqual([1, "…", 57, 58, 59]);
+  });
+
+  it("does not hide a single page behind a gap marker", () => {
+    expect(pageNumbers(4, 10)).toEqual([1, 2, 3, 4, 5, 6, "…", 10]);
+    expect(pageNumbers(5, 10)).toEqual([1, 2, 3, 4, 5, 6, 7, "…", 10]);
+    expect(pageNumbers(6, 10)).toEqual([1, "…", 4, 5, 6, 7, 8, 9, 10]);
   });
 });

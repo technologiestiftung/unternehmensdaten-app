@@ -94,3 +94,17 @@ export function withParams(params: ListParams, changes: Partial<ListParams>): st
   const query = search.toString();
   return query ? `/?${query}` : "/";
 }
+
+/**
+ * Page links for the pager: first, last and two either side of the current one. A gap of more than
+ * one page becomes "…"; a gap of exactly one shows that page, since "…" would not be shorter.
+ */
+export function pageNumbers(current: number, total: number): (number | "…")[] {
+  const shown = [...new Set([1, current - 2, current - 1, current, current + 1, current + 2, total])]
+    .filter((n) => n >= 1 && n <= total)
+    .sort((a, b) => a - b);
+  return shown.flatMap((n, i) => {
+    const gap = i > 0 ? n - shown[i - 1] - 1 : 0;
+    return gap === 0 ? [n] : gap === 1 ? [n - 1, n] : ["…" as const, n];
+  });
+}
