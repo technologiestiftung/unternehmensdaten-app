@@ -73,14 +73,18 @@ export default async function CompanyPage({
   const list = listParams(await searchParams);
   const pos = /^\d{1,9}$/.test(list.pos ?? "") ? Number(list.pos) : undefined;
   const offset = Math.max(0, (pos ?? 0) - 1);
-  const fundingsPage = Math.max(1, Number.parseInt(list.fpage ?? "1", 10) || 1);
+  let fundingsPage = Math.max(1, Number.parseInt(list.fpage ?? "1", 10) || 1);
+  const loadCompany = async (page: number) =>
+    (
+      await hasura<{ companies: Company[] }>(
+        COMPANY,
+        { id, fundings_offset: (page - 1) * FUNDINGS_PAGE_SIZE },
+        session.accessToken,
+      )
+    ).companies[0];
 
-  const [{ companies }, around] = await Promise.all([
-    hasura<{ companies: Company[] }>(
-      COMPANY,
-      { id, fundings_offset: (fundingsPage - 1) * FUNDINGS_PAGE_SIZE },
-      session.accessToken,
-    ),
+  const [first, around] = await Promise.all([
+    loadCompany(fundingsPage),
     pos === undefined
       ? undefined
       : hasura<{ companies: { id: string; name: string }[] }>(
@@ -89,12 +93,17 @@ export default async function CompanyPage({
           session.accessToken,
         ),
   ]);
-  const c = companies[0];
+  let c = first;
   if (!c) notFound();
+  const fundingPages = Math.max(1, Math.ceil(c.funding_count / FUNDINGS_PAGE_SIZE));
+  if (fundingsPage > fundingPages) {
+    fundingsPage = fundingPages;
+    c = await loadCompany(fundingsPage);
+    if (!c) notFound();
+  }
   const { prev, next } = around ? neighbours(around.companies, id, offset) : {};
   const href = (n: { id: string; pos: number }) =>
     withParams(list, { pos: String(n.pos), fpage: undefined }, `/companies/${n.id}`);
-  const fundingPages = Math.max(1, Math.ceil(c.funding_count / FUNDINGS_PAGE_SIZE));
   const firstFunding = (fundingsPage - 1) * FUNDINGS_PAGE_SIZE + 1;
 
   const votes = tally(c.feedback, session.userId);

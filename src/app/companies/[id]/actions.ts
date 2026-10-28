@@ -26,12 +26,10 @@ const SET_VOTE = `
     ) { verdict }
   }`;
 
-// Hasura's delete permission limits this to the signed-in user's own vote.
+// Hasura's delete permission limits this to the signed-in user's own vote; author_id is defense in depth.
 const REMOVE_VOTE_MUTATION = `
-  mutation RemoveVote($company_id: uuid!, $field_name: String!, $value: String!) {
-    delete_feedback(
-      where: { company_id: { _eq: $company_id }, field_name: { _eq: $field_name }, value: { _eq: $value } }
-    ) { affected_rows }
+  mutation RemoveVote($where: feedback_bool_exp!) {
+    delete_feedback(where: $where) { affected_rows }
   }`;
 
 /** One vote per user and value; voting again changes it (upsert), the active verdict takes it back. */
@@ -45,7 +43,19 @@ export async function setVote(
   const verdict = String(formData.get("verdict") ?? "");
   if (!UUID.test(companyId) || !isField(field) || !isValidValue(value)) return;
   if (verdict === REMOVE_VOTE) {
-    await hasura(REMOVE_VOTE_MUTATION, { company_id: companyId, field_name: field, value }, session.accessToken);
+    if (!session.userId) return;
+    await hasura(
+      REMOVE_VOTE_MUTATION,
+      {
+        where: {
+          company_id: { _eq: companyId },
+          field_name: { _eq: field },
+          value: { _eq: value },
+          author_id: { _eq: session.userId },
+        },
+      },
+      session.accessToken,
+    );
     revalidate(companyId);
     return;
   }

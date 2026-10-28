@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { requireSession } from "@/lib/auth";
 import { stubHasura } from "@/test/hasura-stub";
 import { setVote } from "./actions";
 
 // Integration: form data → Hasura mutation. Only the session, the network and the cache are stubbed.
-vi.mock("@/lib/auth", () => ({ requireSession: async () => ({ accessToken: "token", userId: "u1" }) }));
+vi.mock("@/lib/auth", () => ({ requireSession: vi.fn(async () => ({ accessToken: "token", userId: "u1" })) }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -29,8 +30,26 @@ describe("setVote", () => {
     const requests = stubHasura({ RemoveVote: { delete_feedback: { affected_rows: 1 } } });
     await setVote(ID, "legal_form", "GmbH", form({ verdict: "remove" }));
     expect(requests).toEqual([
-      { operation: "RemoveVote", variables: { company_id: ID, field_name: "legal_form", value: "GmbH" }, authorization: "Bearer token" },
+      {
+        operation: "RemoveVote",
+        variables: {
+          where: {
+            company_id: { _eq: ID },
+            field_name: { _eq: "legal_form" },
+            value: { _eq: "GmbH" },
+            author_id: { _eq: "u1" },
+          },
+        },
+        authorization: "Bearer token",
+      },
     ]);
+  });
+
+  it("removes nothing when the session has no user id", async () => {
+    vi.mocked(requireSession).mockResolvedValueOnce({ accessToken: "token", expires: "" });
+    const requests = stubHasura({});
+    await setVote(ID, "legal_form", "GmbH", form({ verdict: "remove" }));
+    expect(requests).toHaveLength(0);
   });
 
   it("sends nothing for an unknown field, a bad id or an unknown verdict", async () => {
