@@ -13,15 +13,18 @@ import { formatDate, formatEuro, MAX_COMMENT_LENGTH, UUID } from "@/lib/format";
 import { hasura } from "@/lib/hasura";
 import { type Provenance, PROVENANCE_FIELDS, provenanceFor } from "@/lib/provenance";
 import { listParams, neighbours, orderBy, PAGE_SIZE, where, withParams } from "@/lib/query";
+import { Pager } from "@/app/pager";
 import { addComment } from "./actions";
 import { FeedbackButtons, FieldCell } from "./feedback-buttons";
 import { ProvenanceInfo } from "./provenance-info";
 
+const FUNDINGS_PAGE_SIZE = 25;
+
 const COMPANY = `
-  query Company($id: uuid!) {
+  query Company($id: uuid!, $fundings_offset: Int!) {
     companies(where: { id: { _eq: $id } }) {
       ${PROFILE_FIELDS}
-      fundings(order_by: { period_from: desc }, limit: 25) {
+      fundings(order_by: [{ period_from: desc_nulls_last }, { fkz: asc }], limit: ${FUNDINGS_PAGE_SIZE}, offset: $fundings_offset) {
         fkz amount_eur period_from period_to topic ministry
       }
       comments(order_by: { created_at: desc }) { id body author_id created_at }
@@ -70,9 +73,14 @@ export default async function CompanyPage({
   const list = listParams(await searchParams);
   const pos = /^\d{1,9}$/.test(list.pos ?? "") ? Number(list.pos) : undefined;
   const offset = Math.max(0, (pos ?? 0) - 1);
+  const fundingsPage = Math.max(1, Number.parseInt(list.fpage ?? "1", 10) || 1);
 
   const [{ companies }, around] = await Promise.all([
-    hasura<{ companies: Company[] }>(COMPANY, { id }, session.accessToken),
+    hasura<{ companies: Company[] }>(
+      COMPANY,
+      { id, fundings_offset: (fundingsPage - 1) * FUNDINGS_PAGE_SIZE },
+      session.accessToken,
+    ),
     pos === undefined
       ? undefined
       : hasura<{ companies: { id: string; name: string }[] }>(
@@ -85,7 +93,9 @@ export default async function CompanyPage({
   if (!c) notFound();
   const { prev, next } = around ? neighbours(around.companies, id, offset) : {};
   const href = (n: { id: string; pos: number }) =>
-    withParams(list, { pos: String(n.pos) }, `/companies/${n.id}`);
+    withParams(list, { pos: String(n.pos), fpage: undefined }, `/companies/${n.id}`);
+  const fundingPages = Math.max(1, Math.ceil(c.funding_count / FUNDINGS_PAGE_SIZE));
+  const firstFunding = (fundingsPage - 1) * FUNDINGS_PAGE_SIZE + 1;
 
   const votes = tally(c.feedback, session.userId);
   const cell = (column: (typeof COLUMNS)[number], withValue = true) => (
@@ -99,7 +109,7 @@ export default async function CompanyPage({
     <div className="mx-auto max-w-4xl">
       <nav aria-label="Unternehmen blättern" className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
         <Link
-          href={withParams(list, { pos: undefined, page: pos === undefined ? undefined : String(Math.floor(pos / PAGE_SIZE) + 1) })}
+          href={withParams(list, { pos: undefined, fpage: undefined, page: pos === undefined ? undefined : String(Math.floor(pos / PAGE_SIZE) + 1) })}
           className={NAV}
         >
           ← Alle Unternehmen
@@ -132,8 +142,8 @@ export default async function CompanyPage({
         ))}
       </dl>
 
-      <h2 className="mt-10 mb-3">Förderungen</h2>
-      {c.fundings.length === 0 ? (
+      <h2 id="foerderungen" className="mt-10 mb-3 scroll-mt-4">Förderungen</h2>
+      {c.funding_count === 0 ? (
         <p className="text-sm text-zinc-500">
           Keine Förderungen im Förderkatalog des Bundes zugeordnet.
         </p>
@@ -141,8 +151,8 @@ export default async function CompanyPage({
         <div className="overflow-x-auto border-t border-zinc-200">
           <table className="w-full border-collapse text-sm">
             <caption className="caption-bottom px-3 py-2.5 text-left text-xs text-zinc-500">
-              Neueste {c.fundings.length} von {c.funding_count}, Quelle:
-              Förderkatalog des Bundes
+              {firstFunding}–{firstFunding + c.fundings.length - 1} von {c.funding_count}, neueste zuerst.
+              Quelle: Förderkatalog des Bundes
             </caption>
             <thead>
               <tr>
@@ -187,6 +197,15 @@ export default async function CompanyPage({
             </tbody>
           </table>
         </div>
+      )}
+      {fundingPages > 1 && (
+        <nav aria-label="Förderungen, Seiten" className="mt-3">
+          <Pager
+            current={fundingsPage}
+            pages={fundingPages}
+            href={(n) => `${withParams(list, { fpage: n > 1 ? String(n) : undefined }, `/companies/${id}`)}#foerderungen`}
+          />
+        </nav>
       )}
 
       <h2 className="mt-10 mb-3">Kommentare</h2>
