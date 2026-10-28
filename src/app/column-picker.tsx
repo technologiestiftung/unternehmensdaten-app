@@ -30,6 +30,7 @@ export function ColumnPicker({
         Spalten ({shown.size} von {columns.length}) <span aria-hidden="true">▾</span>
       </summary>
       <Form
+        key={[...shown].join(",")}
         action="/"
         scroll={false}
         onChange={handleChange}

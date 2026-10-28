@@ -18,6 +18,7 @@ const list = (total: number, companies = [company()]) => ({
     legal_form_options: [{ legal_form: "GmbH" }, { legal_form: "AG" }],
     register_status_options: [],
     technologiefeld_options: [],
+    sources: [],
   },
 });
 const render = async (search: Record<string, string>) =>
