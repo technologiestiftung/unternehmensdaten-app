@@ -164,7 +164,13 @@ export default async function CompaniesPage({
                         col.numeric ? "text-right whitespace-nowrap tabular-nums" : undefined
                       }
                     >
-                      <FieldCell company={c} column={col} votes={votes} provenance={c.provenance} />
+                      {col.multiValue && !review ? (
+                        <div className="line-clamp-2 w-64">
+                          <FieldCell company={c} column={col} provenance={c.provenance} />
+                        </div>
+                      ) : (
+                        <FieldCell company={c} column={col} votes={votes} provenance={c.provenance} />
+                      )}
                     </td>
                   ))}
                 </tr>
