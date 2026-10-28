@@ -8,6 +8,7 @@ import {
   isSortKey,
   listParams,
   orderBy,
+  pageNumbers,
   sortOf,
   where,
   withParams,
@@ -17,7 +18,7 @@ import { Filters, type FilterOptions } from "./filters";
 
 const PAGE_SIZE = 50;
 const PAGER =
-  "text-sm text-zinc-500 hover:text-zinc-900";
+  "block min-w-9 border border-transparent px-2 py-1.5 text-center text-zinc-600 hover:border-zinc-300 hover:text-zinc-900 hover:no-underline";
 
 const distinct = (field: string) =>
   `${field}_options: companies(distinct_on: ${field}, order_by: { ${field}: asc }, where: { ${field}: { _is_null: false } }) { ${field} }`;
@@ -177,23 +178,50 @@ export default async function CompaniesPage({
           </tbody>
         </table>
       </div>
-      <nav className="mt-4 flex gap-6" aria-label="Seiten">
-        {pageNo > 1 && (
-          <Link
-            href={withParams(params, { page: String(pageNo - 1) })}
-            className={PAGER}
-          >
-            ← Zurück
-          </Link>
-        )}
-        {pageNo < pages && (
-          <Link
-            href={withParams(params, { page: String(pageNo + 1) })}
-            className={PAGER}
-          >
-            Weiter →
-          </Link>
-        )}
+      <nav aria-label="Seiten" className="mt-6">
+        <ul className="flex flex-wrap items-center gap-1 text-sm tabular-nums">
+          {pageNo > 1 && (
+            <li>
+              <Link
+                href={withParams(params, { page: String(pageNo - 1) })}
+                className={PAGER}
+                aria-label="Vorherige Seite"
+              >
+                ‹
+              </Link>
+            </li>
+          )}
+          {pageNumbers(pageNo, pages).map((n, i) => (
+            <li key={n === "…" ? `gap-${i}` : n}>
+              {n === "…" ? (
+                <span className="px-2 text-zinc-500">…</span>
+              ) : n === pageNo ? (
+                <span aria-current="page" className="block min-w-9 border border-zinc-900 px-2 py-1.5 text-center font-medium">
+                  {n}
+                </span>
+              ) : (
+                <Link
+                  href={withParams(params, { page: String(n) })}
+                  className={PAGER}
+                  aria-label={`Seite ${n}`}
+                >
+                  {n}
+                </Link>
+              )}
+            </li>
+          ))}
+          {pageNo < pages && (
+            <li>
+              <Link
+                href={withParams(params, { page: String(pageNo + 1) })}
+                className={PAGER}
+                aria-label="Nächste Seite"
+              >
+                ›
+              </Link>
+            </li>
+          )}
+        </ul>
       </nav>
     </>
   );
