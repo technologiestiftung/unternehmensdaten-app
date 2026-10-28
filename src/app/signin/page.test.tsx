@@ -16,7 +16,7 @@ describe("sign-in page", () => {
   });
 
   it("never sends the user to another site after login", async () => {
-    for (const callbackUrl of ["https://evil.example/", "//evil.example/", "javascript:alert(1)"]) {
+    for (const callbackUrl of ["https://evil.example/", "//evil.example/", "/\\evil.example/", "javascript:alert(1)"]) {
       await render({ callbackUrl });
       expect(target()).toBe("/");
     }

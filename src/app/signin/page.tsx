@@ -11,7 +11,7 @@ export default async function SignInPage({
 }) {
   const { callbackUrl, error } = await searchParams;
   // Only paths on this site; next-auth's redirect check is the second line of defence.
-  const target = typeof callbackUrl === "string" && callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")
+  const target = typeof callbackUrl === "string" && /^\/(?![/\\])/.test(callbackUrl)
     ? callbackUrl
     : "/";
   return (
