@@ -24,22 +24,21 @@ export function Filters({
     <form
       role="search"
       action="/"
-      className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+      className="mb-6 grid grid-cols-1 gap-4 border-b border-zinc-200 pb-6 sm:grid-cols-2 lg:grid-cols-4"
     >
       {/* Sorting survives a new search; the page does not. */}
       {params.sort && <input type="hidden" name="sort" value={params.sort} />}
       {params.dir && <input type="hidden" name="dir" value={params.dir} />}
-      <label className="flex flex-col gap-1">
+      <label className="flex flex-col gap-1.5 text-xs font-medium text-zinc-500">
         Name enthält
         <input name="q" type="search" defaultValue={params.q ?? ""} />
       </label>
       {SELECTS.map(({ name, label }) => (
-        <label key={name} className="flex flex-col gap-1">
+        <label key={name} className="flex flex-col gap-1.5 text-xs font-medium text-zinc-500">
           {label}
           <select
             name={name}
             defaultValue={params[name] ?? ""}
-            className="rounded border border-neutral-500 px-2.5 py-1.5"
           >
             <option value="">alle</option>
             {options[name].map((value) => (
@@ -50,7 +49,7 @@ export function Filters({
           </select>
         </label>
       ))}
-      <label className="flex flex-col gap-1">
+      <label className="flex flex-col gap-1.5 text-xs font-medium text-zinc-500">
         WZ beginnt mit
         <input
           name="wz"
@@ -60,8 +59,8 @@ export function Filters({
         />
       </label>
       <fieldset className="flex flex-col gap-1">
-        <legend className="mb-1">Nur Unternehmen</legend>
-        <label className="flex items-center gap-2">
+        <legend className="mb-1 text-xs font-medium text-zinc-500">Nur Unternehmen</legend>
+        <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
             name="website"
@@ -70,7 +69,7 @@ export function Filters({
           />{" "}
           mit Website
         </label>
-        <label className="flex items-center gap-2">
+        <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
             name="fundings"
@@ -80,7 +79,7 @@ export function Filters({
           mit Förderungen
         </label>
       </fieldset>
-      <label className="flex items-center gap-2 self-end">
+      <label className="flex items-center gap-2 self-end text-sm">
         <input
           type="checkbox"
           name="review"
@@ -89,9 +88,11 @@ export function Filters({
         />{" "}
         Werte bewerten (✓/✗ in der Tabelle)
       </label>
-      <div className="flex items-end gap-3">
+      <div className="flex items-end justify-end gap-4">
         <button type="submit">Filtern</button>
-        <Link href="/">Zurücksetzen</Link>
+        <Link href="/" className="py-2 text-sm text-zinc-500 hover:text-zinc-900">
+          Zurücksetzen
+        </Link>
       </div>
     </form>
   );

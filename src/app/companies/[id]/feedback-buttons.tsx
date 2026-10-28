@@ -42,9 +42,9 @@ export function FeedbackButtons({
         className={`inline-flex items-center gap-0.5 px-1 py-0.5 text-xs ${
           mine
             ? verdict === "correct"
-              ? "bg-green-700"
-              : "bg-red-700"
-            : `border border-neutral-300 bg-white ${tone}`
+              ? "bg-green-700 hover:bg-green-800"
+              : "bg-red-700 hover:bg-red-800"
+            : `border border-zinc-200 bg-white hover:bg-zinc-100 ${tone}`
         }`}
       >
         <svg
@@ -92,7 +92,7 @@ function CorrectionForm({
       className="mt-1 flex flex-wrap items-center gap-1 text-sm"
     >
       <input type="hidden" name="verdict" value="wrong" />
-      <label htmlFor={id} className="text-neutral-600">
+      <label htmlFor={id} className="text-zinc-500">
         Richtiger Wert
       </label>
       <input
@@ -102,7 +102,7 @@ function CorrectionForm({
         maxLength={MAX_VALUE_LENGTH}
         className="min-w-48 flex-1 py-0.5"
       />
-      <button type="submit" className="px-2 py-0.5 text-xs">
+      <button type="submit" className="px-2 py-1 text-xs">
         Speichern
       </button>
     </form>
