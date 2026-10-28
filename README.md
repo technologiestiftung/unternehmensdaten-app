@@ -3,8 +3,9 @@
 The web app for the Berlin company database. It shows one record per company, with the target
 columns, the federal grants (Förderungen) and comments by colleagues. The company list can be
 sorted and filtered, and the filtered view is in the URL, so it can be shared. Users can mark
-extracted values (managers, website, Technologiefeld) as correct or wrong and enter the right
-value, on the company page or in the list with **Werte bewerten**. It runs on the
+**every shown value** as correct or wrong and enter the right one (also a value that is missing),
+on the company page or in the list with **Werte bewerten**, and each value has an **ⓘ** that says
+where it came from: source, method, confidence, date and the page it was checked against. It runs on the
 **Berlin Data Hub** (data-hub.berlin).
 
 The app has **no database access of its own**. It is a Next.js server that:
@@ -21,7 +22,7 @@ The data, the database schema and the Hasura permissions live in the other repo,
 browser ──login──▶ Keycloak
    │                  ▲ token
    ▼                  │
-this app (Next.js) ───┴──▶ Hasura ──reader role──▶ Postgres (v_company_profile, company_comments, extraction_feedback)
+this app (Next.js) ───┴──▶ Hasura ──reader role──▶ Postgres (v_company_profile, company_comments, extraction_feedback, v_field_provenance)
 ```
 
 ## Run it locally

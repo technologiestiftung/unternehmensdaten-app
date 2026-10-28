@@ -12,7 +12,8 @@ import {
   where,
   withParams,
 } from "@/lib/query";
-import { votableCells } from "./companies/[id]/feedback-buttons";
+import { FieldCell } from "./companies/[id]/feedback-buttons";
+import { type Provenance, PROVENANCE_FIELDS } from "@/lib/provenance";
 import { Filters, type FilterOptions } from "./filters";
 
 const PAGE_SIZE = 50;
@@ -34,6 +35,7 @@ const COMPANIES = `
       ${PROFILE_FIELDS}
       comments(limit: 1, order_by: { created_at: desc }) { body }
       feedback @include(if: $review) { field_name value verdict author_id }
+      provenance @include(if: $review) { ${PROVENANCE_FIELDS} }
     }
     companies_aggregate(where: $where) { aggregate { count } }
     ${distinct("legal_form")}
@@ -42,7 +44,7 @@ const COMPANIES = `
   }`;
 
 type Result = {
-  companies: (CompanyProfile & { feedback?: FeedbackRow[] })[];
+  companies: (CompanyProfile & { feedback?: FeedbackRow[]; provenance?: Provenance[] })[];
   companies_aggregate: { aggregate: { count: number } };
 } & Record<`${keyof FilterOptions}_options`, Record<string, string>[]>;
 
@@ -78,7 +80,6 @@ export default async function CompaniesPage({
     ]),
   ) as FilterOptions;
 
-  const websiteOf = COLUMNS.find((col) => col.key === "website")!.render;
 
   /** A header that sorts by its column; clicking the active one reverses the direction. */
   const header = (key: string, label: string) => {
@@ -139,11 +140,13 @@ export default async function CompaniesPage({
           </thead>
           <tbody>
             {data.companies.map((c) => {
-              const cells: Partial<Record<string, React.ReactNode>> = review
-                ? votableCells(
-                    c,
-                    tally(c.feedback ?? [], session.userId),
-                    websiteOf(c),
+              const votes = review ? tally(c.feedback ?? [], session.userId) : null;
+              const cells: Partial<Record<string, React.ReactNode>> = votes
+                ? Object.fromEntries(
+                    COLUMNS.filter((col) => col.votes).map((col) => [
+                      col.key,
+                      <FieldCell key={col.key} company={c} column={col} votes={votes} provenance={c.provenance ?? []} />,
+                    ]),
                   )
                 : {};
               return (

@@ -4,6 +4,7 @@ import {
   isValidValue,
   isVerdict,
   MAX_VALUE_LENGTH,
+  MISSING,
   tally,
   tallyKey,
   voteChange,
@@ -101,14 +102,38 @@ describe("voteChange", () => {
 describe("validation", () => {
   it("accepts only the fields and verdicts the database accepts", () => {
     expect(isField("management")).toBe(true);
-    expect(isField("legal_form")).toBe(false);
+    expect(isField("legal_form")).toBe(true);
+    // Not data to judge: the comment is user input, the date is the system's.
+    expect(isField("comment")).toBe(false);
+    expect(isField("updated_at")).toBe(false);
     expect(isVerdict("wrong")).toBe(true);
     expect(isVerdict("unsure")).toBe(false);
   });
 
   it("bounds the value length like the database CHECK", () => {
-    expect(isValidValue("")).toBe(false);
+    // Empty is a vote on a field that showed nothing.
+    expect(isValidValue(MISSING)).toBe(true);
     expect(isValidValue("x".repeat(MAX_VALUE_LENGTH))).toBe(true);
     expect(isValidValue("x".repeat(MAX_VALUE_LENGTH + 1))).toBe(false);
+  });
+});
+
+describe("voteChange on a missing value", () => {
+  it("needs a wrong vote with a correction", () => {
+    expect(voteChange("wrong", "beispiel.de", MISSING)).toEqual({
+      correction: "beispiel.de",
+      updateColumns: ["verdict", "correction"],
+    });
+  });
+
+  it("refuses a correct vote, and a wrong vote that does not say what is missing", () => {
+    expect(voteChange("correct", null, MISSING)).toBeNull();
+    expect(voteChange("wrong", null, MISSING)).toBeNull();
+    expect(voteChange("wrong", "   ", MISSING)).toBeNull();
+    expect(voteChange("wrong", "x".repeat(MAX_VALUE_LENGTH + 1), MISSING)).toBeNull();
+  });
+
+  it("leaves votes on shown values as they were", () => {
+    expect(voteChange("wrong", null, "a.de")).toEqual({ correction: null, updateColumns: ["verdict"] });
   });
 });

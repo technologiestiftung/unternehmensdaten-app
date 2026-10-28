@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { MANAGEMENT_SEPARATOR, MISSING } from "./feedback";
 import { formatDate, formatEuro, formatNumber } from "./format";
 
 /** One row of `v_company_profile` (Hasura: `companies`), the target record per company. */
@@ -43,24 +44,42 @@ export type Column = {
   /** Long free text: clamped to a few lines in the table. */
   long?: boolean;
   numeric?: boolean;
+  /**
+   * The values users vote on in this cell; `[MISSING]` when the field is empty. Several values get
+   * a vote each (one per manager name). Absent: the cell has no vote (grants are voted on one by
+   * one in the detail page's table; comments and the date are not data to judge).
+   */
+  votes?: (c: CompanyProfile) => string[];
+};
+
+/** One vote on the field's raw value, or on its absence. */
+const one = (value: string | number | boolean | null) =>
+  [value == null ? MISSING : String(value)];
+
+/** The company name, shown as the heading rather than as a column, but voted on like one. */
+export const NAME_COLUMN: Column = {
+  key: "name",
+  label: "Name",
+  render: (c) => c.name,
+  votes: (c) => one(c.name),
 };
 
 /** The target columns in the order the project defined them (docs/target-columns.md). */
 export const COLUMNS: Column[] = [
-  { key: "employee_count", label: "Mitarbeiter", render: (c) => formatNumber(c.employee_count), numeric: true },
-  { key: "revenue", label: "Umsatz", render: (c) => formatEuro(c.revenue), numeric: true },
+  { key: "employee_count", label: "Mitarbeiter", render: (c) => formatNumber(c.employee_count), numeric: true, votes: (c) => one(c.employee_count) },
+  { key: "revenue", label: "Umsatz", render: (c) => formatEuro(c.revenue), numeric: true, votes: (c) => one(c.revenue) },
   {
     key: "fundings",
     label: "Förderungen",
     render: (c) => (c.funding_count > 0 ? `${c.funding_count} · ${formatEuro(c.funding_total_eur)}` : "–"),
     numeric: true,
   },
-  { key: "wz_code", label: "WZ-Nummer", render: (c) => text(c.wz_code) },
-  { key: "established_at", label: "Gründungsdatum", render: (c) => formatDate(c.established_at) },
-  { key: "address", label: "Adresse", render: (c) => text(c.address), long: true },
-  { key: "legal_form", label: "Rechtsform", render: (c) => text(c.legal_form) },
-  { key: "cluster", label: "Cluster", render: (c) => text(c.cluster) },
-  { key: "technologiefeld", label: "Technologiefeld", render: (c) => text(c.technologiefeld) },
+  { key: "wz_code", label: "WZ-Nummer", render: (c) => text(c.wz_code), votes: (c) => one(c.wz_code) },
+  { key: "established_at", label: "Gründungsdatum", render: (c) => formatDate(c.established_at), votes: (c) => one(c.established_at) },
+  { key: "address", label: "Adresse", render: (c) => text(c.address), long: true, votes: (c) => one(c.address) },
+  { key: "legal_form", label: "Rechtsform", render: (c) => text(c.legal_form), votes: (c) => one(c.legal_form) },
+  { key: "cluster", label: "Cluster", render: (c) => text(c.cluster), votes: (c) => one(c.cluster) },
+  { key: "technologiefeld", label: "Technologiefeld", render: (c) => text(c.technologiefeld), votes: (c) => one(c.technologiefeld) },
   {
     key: "website",
     label: "Website",
@@ -72,18 +91,20 @@ export const COLUMNS: Column[] = [
       ) : (
         "–"
       ),
+    votes: (c) => one(c.website),
   },
-  { key: "management", label: "Geschäftsführung", render: (c) => text(c.management), long: true },
-  { key: "business_purpose", label: "Tätigkeitsbeschreibung", render: (c) => text(c.business_purpose), long: true },
+  { key: "management", label: "Geschäftsführung", render: (c) => text(c.management), long: true, votes: (c) => c.management ? c.management.split(MANAGEMENT_SEPARATOR) : [MISSING] },
+  { key: "business_purpose", label: "Tätigkeitsbeschreibung", render: (c) => text(c.business_purpose), long: true, votes: (c) => one(c.business_purpose) },
   { key: "comment", label: "Kommentar", render: (c) => c.comments?.[0]?.body ?? "–", long: true },
   {
     key: "deeptech",
     label: "DeepTech",
     render: (c) =>
       c.deeptech_class ? `${c.deeptech_class} (Konfidenz ${formatNumber(c.deeptech_confidence)})` : "–",
+    votes: (c) => one(c.deeptech_class),
   },
-  { key: "is_ai", label: "KI-Unternehmen", render: (c) => (c.is_ai == null ? "–" : c.is_ai ? "ja" : "nein") },
-  { key: "amazon_effect", label: "Amazon-Effekt", render: (c) => text(c.amazon_effect) },
-  { key: "register_status", label: "Registerstatus", render: (c) => text(c.register_status) },
+  { key: "is_ai", label: "KI-Unternehmen", render: (c) => (c.is_ai == null ? "–" : c.is_ai ? "ja" : "nein"), votes: (c) => one(c.is_ai) },
+  { key: "amazon_effect", label: "Amazon-Effekt", render: (c) => text(c.amazon_effect), votes: (c) => one(c.amazon_effect) },
+  { key: "register_status", label: "Registerstatus", render: (c) => text(c.register_status), votes: (c) => one(c.register_status) },
   { key: "updated_at", label: "Stand", render: (c) => formatDate(c.updated_at) },
 ];
