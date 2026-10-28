@@ -1,11 +1,16 @@
 "use client";
 
 import Form from "next/form";
-import type { ChangeEvent } from "react";
+import { type ChangeEvent, useId } from "react";
 import type { ListParams } from "@/lib/query";
+import { TABLE_TOOL } from "./table-tool";
 import { KeepParams } from "./keep-params";
+import { Switch } from "./switch";
 
-/** Show or hide table columns; applies on every change and keeps filters, sort and page. */
+/**
+ * Show or hide table columns: an icon above the table that opens a popover (top layer, so the
+ * scrolling table cannot clip it). Applies on every change and keeps filters, sort and page.
+ */
 export function ColumnPicker({
   params,
   columns,
@@ -15,6 +20,8 @@ export function ColumnPicker({
   columns: { key: string; label: string }[];
   shown: Set<string>;
 }) {
+  const id = useId();
+  const anchor = `--columns-${id.replace(/[^\w-]/g, "")}`;
   const handleChange = (event: ChangeEvent<HTMLFormElement>) => {
     const form = event.currentTarget;
     // The last column cannot be hidden: no columns would show them all, which would be confusing.
@@ -25,32 +32,41 @@ export function ColumnPicker({
     form.requestSubmit();
   };
   return (
-    <details className="relative">
-      <summary className="cursor-pointer list-none text-sm text-zinc-500 hover:text-zinc-900 [&::-webkit-details-marker]:hidden">
-        Spalten ({shown.size} von {columns.length}) <span aria-hidden="true">▾</span>
-      </summary>
-      <Form
-        key={[...shown].join(",")}
-        action="/"
-        scroll={false}
-        onChange={handleChange}
-        className="absolute right-0 z-40 mt-2 w-60 border border-zinc-200 bg-white p-3 shadow-sm"
+    <>
+      <button
+        type="button"
+        popoverTarget={id}
+        aria-label={`Spalten auswählen (${shown.size} von ${columns.length} angezeigt)`}
+        title="Spalten auswählen"
+        style={{ anchorName: anchor }}
+        className={TABLE_TOOL}
       >
-        <KeepParams params={params} except={["cols"]} />
-        <fieldset className="flex flex-col gap-1.5">
-          <legend className="mb-1.5 text-xs font-medium text-zinc-500">Angezeigte Spalten</legend>
-          {columns.map((col) => (
-            <label key={col.key} className="flex cursor-pointer items-center gap-2 text-sm">
-              <input type="checkbox" name="cols" value={col.key} defaultChecked={shown.has(col.key)} />
-              {col.label}
-            </label>
-          ))}
-        </fieldset>
-        {/* Applies on change; this button is for when JavaScript is off. */}
-        <noscript>
-          <button type="submit" className="mt-3">Anwenden</button>
-        </noscript>
-      </Form>
-    </details>
+        <svg viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth={1.75} aria-hidden="true">
+          <path d="M3 4h14v12H3zM8 4v12M12 4v12" />
+        </svg>
+      </button>
+      <div
+        id={id}
+        popover="auto"
+        style={{ positionAnchor: anchor, positionArea: "bottom span-left", positionTryFallbacks: "flip-block, flip-inline" }}
+        className="m-0 mt-1 w-60 border border-zinc-200 bg-white p-3 text-left shadow-sm"
+      >
+        <Form key={[...shown].join(",")} action="/" scroll={false} onChange={handleChange}>
+          <KeepParams params={params} except={["cols"]} />
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-1.5 text-xs font-medium text-zinc-500">Angezeigte Spalten</legend>
+            {columns.map((col) => (
+              <Switch key={col.key} name="cols" value={col.key} isChecked={shown.has(col.key)}>
+                {col.label}
+              </Switch>
+            ))}
+          </fieldset>
+          {/* Applies on change; this button is for when JavaScript is off. */}
+          <noscript>
+            <button type="submit" className="mt-3">Anwenden</button>
+          </noscript>
+        </Form>
+      </div>
+    </>
   );
 }

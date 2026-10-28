@@ -20,6 +20,7 @@ import { FieldCell } from "./companies/[id]/feedback-buttons";
 import { type Provenance, PROVENANCE_FIELDS } from "@/lib/provenance";
 import { ColumnPicker } from "./column-picker";
 import { Filters, type FilterOptions, type SourceOption } from "./filters";
+import { TABLE_TOOL, TABLE_TOOL_ACTIVE } from "./table-tool";
 import { KeepParams } from "./keep-params";
 
 const PAGER =
@@ -127,11 +128,28 @@ export default async function CompaniesPage({
     <>
       <h1 className="mb-6">Unternehmen</h1>
       <Filters params={params} options={options} sources={data.sources} />
-      <div className="mb-3 flex items-baseline justify-between gap-4">
+      <div className="mb-3 flex items-center justify-between gap-4">
         <p className="text-sm text-zinc-500 tabular-nums" aria-live="polite">
           {formatNumber(total)} Treffer, Seite {pageNo} von {pages}
         </p>
-        <ColumnPicker params={params} columns={COLUMNS.map(({ key, label }) => ({ key, label }))} shown={new Set(columns.map((col) => col.key))} />
+        <span className="flex gap-1">
+          <Link
+            href={withParams(params, { review: review ? undefined : "1" })}
+            scroll={false}
+            aria-label={review ? "Werte bewerten beenden" : "Werte bewerten (✓/✗ in der Tabelle)"}
+            title={review ? "Werte bewerten beenden" : "Werte bewerten"}
+            className={review ? TABLE_TOOL_ACTIVE : TABLE_TOOL}
+          >
+            <svg viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth={1.75} aria-hidden="true">
+              <path d="M13.5 3.5l3 3L7 16H4v-3z" />
+            </svg>
+          </Link>
+          <ColumnPicker
+            params={params}
+            columns={COLUMNS.map(({ key, label }) => ({ key, label }))}
+            shown={new Set(columns.map((col) => col.key))}
+          />
+        </span>
       </div>
       <div className="max-h-[75vh] overflow-auto border-y border-zinc-200">
         <table className="w-max min-w-full border-collapse text-sm">
