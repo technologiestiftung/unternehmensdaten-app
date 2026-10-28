@@ -45,6 +45,8 @@ export type ListParams = {
   fundings?: string;
   /** "1" shows the ✓/✗ buttons in the table. */
   review?: string;
+  /** A source key (`sources.key`): only companies with at least one value from it. */
+  source?: string;
   /** On a company page: its 0-based position in the list it was opened from, for prev/next. */
   pos?: string;
 } & Partial<Record<keyof typeof SELECT_FILTERS, string>>;
@@ -85,6 +87,8 @@ export function where(params: ListParams): Record<string, unknown> {
   if (wz && /^[0-9.]{1,7}$/.test(wz)) and.push({ wz_code: { _like: `${wz}%` } });
   if (params.website === "1") and.push({ website: { _is_null: false } });
   if (params.fundings === "1") and.push({ funding_count: { _gt: 0 } });
+  const source = params.source?.trim();
+  if (source && /^[a-z0-9_]{1,64}$/.test(source)) and.push({ source_keys: { _contains: [source] } });
   return and.length ? { _and: and } : {};
 }
 

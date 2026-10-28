@@ -10,8 +10,8 @@ const HIDE_DELAY_MS = 200;
 /**
  * The ⓘ next to a value: where it came from. Opens on hover and on click/Enter (a native popover,
  * so Esc and clicking elsewhere close it). The popover sits in the top layer, so a scrolling table
- * cannot clip it; CSS anchor positioning keeps it next to the ⓘ. Nothing is shown when nothing is
- * known.
+ * cannot clip it; CSS anchor positioning keeps it next to the ⓘ. A field with no recorded source
+ * says so, so every field has an ⓘ.
  */
 export function ProvenanceInfo({ label, rows }: { label: string; rows: Provenance[] }) {
   const id = useId();
@@ -19,7 +19,6 @@ export function ProvenanceInfo({ label, rows }: { label: string; rows: Provenanc
   const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   // Opened by a click: stays open when the pointer leaves.
   const isPinned = useRef(false);
-  if (rows.length === 0) return null;
 
   const anchor = `--provenance-${id.replace(/[^\w-]/g, "")}`;
   const show = () => {
@@ -53,6 +52,7 @@ export function ProvenanceInfo({ label, rows }: { label: string; rows: Provenanc
         style={{ positionAnchor: anchor, positionArea: "bottom span-right", positionTryFallbacks: "flip-block, flip-inline" }}
         className="m-0 mt-1 w-72 border border-zinc-200 bg-white p-3 text-left text-xs font-normal whitespace-normal text-zinc-700 shadow-sm"
       >
+        {rows.length === 0 && <p className="m-0 text-zinc-500">Keine Quelle erfasst.</p>}
         {rows.map((row, index) => {
           const method = methodLabel(row);
           const evidence = evidenceList(row.evidence);

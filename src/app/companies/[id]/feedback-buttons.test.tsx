@@ -50,7 +50,8 @@ describe("FieldCell", () => {
 
   it("matches a manager's provenance on the name, not on the field", () => {
     const html = render("management");
-    expect(html.match(/popover="auto"/g)).toHaveLength(1);
+    expect(html.match(/popover="auto"/g)).toHaveLength(5);
+    expect(html.match(/Keine Quelle erfasst/g)).toHaveLength(4);
     expect(html).toContain('aria-label="Herkunft: Geschäftsführung: Anna A"');
     expect(html).not.toContain("Ehemalige Person");
   });
@@ -64,8 +65,14 @@ describe("FieldCell", () => {
     expect(html).toContain("Geprüft an");
   });
 
-  it("shows no ⓘ when there is no provenance", () => {
-    expect(render("legal_form")).not.toContain("popover");
+  it("shows an ⓘ saying so when a value has no provenance", () => {
+    expect(render("legal_form")).toContain("Keine Quelle erfasst.");
+  });
+
+  it("shows an ⓘ on an empty field too", () => {
+    const html = render("cluster");
+    expect(html).toContain('aria-label="Herkunft: Cluster: kein Wert"');
+    expect(html).toContain("Keine Quelle erfasst.");
   });
 
   it("lets an empty field be reported as missing, with a required value", () => {

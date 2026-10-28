@@ -29,7 +29,7 @@ describe("where", () => {
 
   it("combines every filter with AND", () => {
     expect(
-      where({ q: "bau", legal_form: "GmbH", register_status: "aktiv", wz: "62", website: "1", fundings: "1" }),
+      where({ q: "bau", legal_form: "GmbH", register_status: "aktiv", wz: "62", website: "1", fundings: "1", source: "website_discovery" }),
     ).toEqual({
       _and: [
         { name: { _ilike: "%bau%" } },
@@ -38,12 +38,14 @@ describe("where", () => {
         { wz_code: { _like: "62%" } },
         { website: { _is_null: false } },
         { funding_count: { _gt: 0 } },
+        { source_keys: { _contains: ["website_discovery"] } },
       ],
     });
   });
 
   it("drops a WZ prefix that is not a WZ code", () => {
     expect(where({ wz: "62%' OR 1=1" })).toEqual({});
+    expect(where({ source: "x'] } }" })).toEqual({});
   });
 });
 
