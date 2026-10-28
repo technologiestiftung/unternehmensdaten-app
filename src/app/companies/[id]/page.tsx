@@ -74,27 +74,29 @@ export default async function CompanyPage({
   return (
     <div className="mx-auto max-w-4xl">
       <p>
-        <Link href="/">← Alle Unternehmen</Link>
+        <Link href="/" className="text-sm text-zinc-500 hover:text-zinc-900">
+          ← Alle Unternehmen
+        </Link>
       </p>
-      <h1 className="mt-2 mb-4 text-2xl font-bold">{c.name}</h1>
-      <dl className="grid grid-cols-[minmax(10rem,max-content)_1fr] gap-x-4 gap-y-1">
+      <h1 className="mt-3 mb-6">{c.name}</h1>
+      <dl className="grid grid-cols-[minmax(10rem,max-content)_1fr] border-t border-zinc-200 text-sm">
         {fields.map(([label, value]) => (
-          <div key={label} className="contents">
-            <dt className="text-neutral-600">{label}</dt>
-            <dd className="m-0 break-words">{value}</dd>
+          <div key={label} className="contents [&:last-child>*]:border-0">
+            <dt className="border-b border-zinc-100 py-2.5 pr-4 text-zinc-500">{label}</dt>
+            <dd className="m-0 border-b border-zinc-100 py-2.5 break-words">{value}</dd>
           </div>
         ))}
       </dl>
 
-      <h2 className="mt-8 mb-2 text-xl font-bold">Förderungen</h2>
+      <h2 className="mt-10 mb-3">Förderungen</h2>
       {c.fundings.length === 0 ? (
-        <p className="text-neutral-600">
+        <p className="text-sm text-zinc-500">
           Keine Förderungen im Förderkatalog des Bundes zugeordnet.
         </p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <caption className="text-neutral-600">
+        <div className="overflow-x-auto border-t border-zinc-200">
+          <table className="w-full border-collapse text-sm">
+            <caption className="caption-bottom px-3 py-2.5 text-left text-xs text-zinc-500">
               Neueste {c.fundings.length} von {c.funding_count}, Quelle:
               Förderkatalog des Bundes
             </caption>
@@ -118,7 +120,9 @@ export default async function CompanyPage({
                   </td>
                   <td>{text(f.topic)}</td>
                   <td>{text(f.ministry)}</td>
-                  <td className="text-right">{formatEuro(f.amount_eur)}</td>
+                  <td className="text-right whitespace-nowrap tabular-nums">
+                    {formatEuro(f.amount_eur)}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -126,12 +130,14 @@ export default async function CompanyPage({
         </div>
       )}
 
-      <h2 className="mt-8 mb-2 text-xl font-bold">Kommentare</h2>
+      <h2 className="mt-10 mb-3">Kommentare</h2>
       <form
         action={addComment.bind(null, c.id)}
         className="mb-6 flex flex-col items-start gap-2"
       >
-        <label htmlFor="body">Neuer Kommentar</label>
+        <label htmlFor="body" className="text-xs font-medium text-zinc-500">
+          Neuer Kommentar
+        </label>
         <textarea
           id="body"
           name="body"
@@ -142,15 +148,15 @@ export default async function CompanyPage({
         <button type="submit">Speichern</button>
       </form>
       {c.comments.length === 0 ? (
-        <p className="text-neutral-600">Noch keine Kommentare.</p>
+        <p className="text-sm text-zinc-500">Noch keine Kommentare.</p>
       ) : (
-        <ul className="list-none p-0">
+        <ul className="list-none divide-y divide-zinc-100 border-t border-zinc-200 p-0">
           {c.comments.map((comment) => (
             <li
               key={comment.id}
-              className="mb-3 border-l-4 border-neutral-300 py-1 pl-3 whitespace-pre-wrap"
+              className="py-4 text-sm whitespace-pre-wrap"
             >
-              <span className="text-neutral-600">
+              <span className="text-xs text-zinc-500">
                 {comment.author_id === session.userId ? "Sie" : "Kolleg:in"} ·{" "}
                 {formatDate(comment.created_at)}
               </span>

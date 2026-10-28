@@ -16,6 +16,8 @@ import { votableCells } from "./companies/[id]/feedback-buttons";
 import { Filters, type FilterOptions } from "./filters";
 
 const PAGE_SIZE = 50;
+const PAGER =
+  "text-sm text-zinc-500 hover:text-zinc-900";
 
 const distinct = (field: string) =>
   `${field}_options: companies(distinct_on: ${field}, order_by: { ${field}: asc }, where: { ${field}: { _is_null: false } }) { ${field} }`;
@@ -86,10 +88,10 @@ export default async function CompaniesPage({
     return (
       <Link
         href={withParams(params, { sort: key, dir, page: undefined })}
-        className="text-neutral-900 no-underline"
+        className="inline-flex items-center gap-1 text-zinc-500 hover:text-zinc-900 hover:no-underline"
       >
         {label}{" "}
-        <span aria-hidden="true">
+        <span aria-hidden="true" className={active ? "text-zinc-900" : "text-zinc-500"}>
           {active ? (sort.dir === "asc" ? "▲" : "▼") : "↕"}
         </span>
       </Link>
@@ -104,12 +106,12 @@ export default async function CompaniesPage({
 
   return (
     <>
-      <h1 className="mb-4 text-2xl font-bold">Unternehmen</h1>
+      <h1 className="mb-6">Unternehmen</h1>
       <Filters params={params} options={options} />
-      <p className="mb-2 text-neutral-600" aria-live="polite">
+      <p className="mb-3 text-sm text-zinc-500 tabular-nums" aria-live="polite">
         {formatNumber(total)} Treffer, Seite {pageNo} von {pages}
       </p>
-      <div className="max-h-[75vh] overflow-auto rounded border border-neutral-300">
+      <div className="max-h-[75vh] overflow-auto border-y border-zinc-200">
         <table className="w-max min-w-full border-collapse text-sm">
           <caption className="sr-only">
             Unternehmen mit allen Zielfeldern
@@ -145,10 +147,10 @@ export default async function CompaniesPage({
                   )
                 : {};
               return (
-                <tr key={c.id} className="group even:bg-neutral-50">
+                <tr key={c.id} className="group hover:bg-zinc-50">
                   <th
                     scope="row"
-                    className="sticky left-0 z-10 w-64 min-w-64 bg-white font-normal group-even:bg-neutral-50"
+                    className="sticky left-0 z-10 w-64 min-w-64 bg-white font-medium group-hover:bg-zinc-50"
                   >
                     <Link href={`/companies/${c.id}`}>{c.name}</Link>
                   </th>
@@ -156,7 +158,7 @@ export default async function CompaniesPage({
                     <td
                       key={col.key}
                       className={
-                        col.numeric ? "text-right whitespace-nowrap" : undefined
+                        col.numeric ? "text-right whitespace-nowrap tabular-nums" : undefined
                       }
                     >
                       {cells[col.key] ??
@@ -175,14 +177,20 @@ export default async function CompaniesPage({
           </tbody>
         </table>
       </div>
-      <nav className="mt-4 flex gap-4" aria-label="Seiten">
+      <nav className="mt-4 flex gap-6" aria-label="Seiten">
         {pageNo > 1 && (
-          <Link href={withParams(params, { page: String(pageNo - 1) })}>
+          <Link
+            href={withParams(params, { page: String(pageNo - 1) })}
+            className={PAGER}
+          >
             ← Zurück
           </Link>
         )}
         {pageNo < pages && (
-          <Link href={withParams(params, { page: String(pageNo + 1) })}>
+          <Link
+            href={withParams(params, { page: String(pageNo + 1) })}
+            className={PAGER}
+          >
             Weiter →
           </Link>
         )}

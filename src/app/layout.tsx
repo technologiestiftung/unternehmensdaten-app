@@ -14,18 +14,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="de">
       <body>
-        <a className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:bg-white focus:p-2" href="#main">
+        <a className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-white focus:p-2" href="#main">
           Zum Inhalt springen
         </a>
-        <header className="flex items-center justify-between border-b border-neutral-300 bg-neutral-100 px-4 py-3">
-          <Link href="/" className="font-bold text-neutral-900 no-underline">
-            Unternehmensdaten Berlin
-          </Link>
-          <Link href="/api/auth/signout" prefetch={false}>
-            Abmelden
-          </Link>
+        <header className="border-b border-zinc-200 bg-white">
+          <div className="mx-auto flex h-14 max-w-[1920px] items-center justify-between px-6">
+            <Link href="/" className="font-semibold tracking-tight text-zinc-900 hover:no-underline">
+              Unternehmensdaten Berlin
+            </Link>
+            <Link href="/api/auth/signout" prefetch={false} className="text-sm text-zinc-600 hover:text-zinc-900">
+              Abmelden
+            </Link>
+          </div>
         </header>
-        <main id="main" className="mx-auto max-w-[1920px] px-4 pt-6 pb-16">
+        <main id="main" className="mx-auto max-w-[1920px] px-6 pt-8 pb-16">
           {children}
         </main>
       </body>
