@@ -12,7 +12,6 @@ import {
   listParams,
   orderBy,
   PAGE_SIZE,
-  pageNumbers,
   sortOf,
   visibleColumns,
   where,
@@ -24,9 +23,7 @@ import { ColumnPicker } from "./column-picker";
 import { Filters, type FilterOptions, type SourceOption } from "./filters";
 import { TABLE_TOOL, TABLE_TOOL_ACTIVE } from "./table-tool";
 import { KeepParams } from "./keep-params";
-
-const PAGER =
-  "block min-w-9 border border-transparent px-2 py-1.5 text-center text-zinc-600 hover:border-zinc-300 hover:text-zinc-900 hover:no-underline";
+import { Pager } from "./pager";
 
 /** Long single-valued text is clamped; the ⓘ and ✓/✗ stay outside the clamp so they are not cut off. */
 const LIST_COLUMNS: Column[] = COLUMNS.map((col) =>
@@ -224,49 +221,7 @@ export default async function CompaniesPage({
         </table>
       </div>
       <nav aria-label="Seiten" className="mt-6 flex flex-wrap items-center justify-between gap-4">
-        <ul className="flex flex-wrap items-center gap-1 text-sm tabular-nums">
-          {pageNo > 1 && (
-            <li>
-              <Link
-                href={withParams(params, { page: String(pageNo - 1) })}
-                className={PAGER}
-                aria-label="Vorherige Seite"
-              >
-                ‹
-              </Link>
-            </li>
-          )}
-          {pageNumbers(pageNo, pages).map((n, i) => (
-            <li key={n === "…" ? `gap-${i}` : n}>
-              {n === "…" ? (
-                <span className="px-2 text-zinc-500">…</span>
-              ) : n === pageNo ? (
-                <span aria-current="page" className="block min-w-9 border border-zinc-900 px-2 py-1.5 text-center font-medium">
-                  {n}
-                </span>
-              ) : (
-                <Link
-                  href={withParams(params, { page: String(n) })}
-                  className={PAGER}
-                  aria-label={`Seite ${n}`}
-                >
-                  {n}
-                </Link>
-              )}
-            </li>
-          ))}
-          {pageNo < pages && (
-            <li>
-              <Link
-                href={withParams(params, { page: String(pageNo + 1) })}
-                className={PAGER}
-                aria-label="Nächste Seite"
-              >
-                ›
-              </Link>
-            </li>
-          )}
-        </ul>
+        <Pager current={pageNo} pages={pages} href={(n) => withParams(params, { page: String(n) })} />
         {pages > 1 && (
           <Form action="/" scroll={false} className="flex items-center gap-2 text-sm text-zinc-500">
             <KeepParams params={params} except={["page"]} />

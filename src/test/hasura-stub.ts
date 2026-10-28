@@ -12,7 +12,7 @@ export const company = (over: Partial<CompanyProfile> = {}): CompanyProfile => (
 });
 
 /**
- * Stubs `fetch` as Hasura: answers each GraphQL operation by its name (`query Companies(` →
+ * Stubs `fetch` as Hasura: answers each GraphQL query or mutation by its name (`query Companies(` →
  * "Companies") and records every request, so tests can check the variables the app sent.
  */
 export function stubHasura(answers: Record<string, unknown>) {
@@ -20,7 +20,7 @@ export function stubHasura(answers: Record<string, unknown>) {
   const requests: { operation: string; variables: Record<string, unknown>; authorization: string }[] = [];
   vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
     const { query, variables } = JSON.parse(String(init.body));
-    const operation = /query (\w+)/.exec(query)?.[1] ?? "";
+    const operation = /(?:query|mutation) (\w+)/.exec(query)?.[1] ?? "";
     requests.push({ operation, variables, authorization: new Headers(init.headers).get("authorization") ?? "" });
     if (!(operation in answers)) return Response.json({ errors: [{ message: `no stub for ${operation}` }] });
     return Response.json({ data: answers[operation] });

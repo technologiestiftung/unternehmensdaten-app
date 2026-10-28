@@ -52,6 +52,8 @@ export type ListParams = {
   source?: string;
   /** On a company page: its 0-based position in the list it was opened from, for prev/next. */
   pos?: string;
+  /** On a company page: the page of its grants table. */
+  fpage?: string;
   /** Comma-separated keys of the columns to show; absent (or none valid) shows all. */
   cols?: string;
 } & Partial<Record<keyof typeof SELECT_FILTERS, string>>;

@@ -65,4 +65,33 @@ describe("company page", () => {
     stubHasura({ Company: { companies: [] } });
     await expect(render({})).rejects.toThrow(/NEXT_HTTP_ERROR_FALLBACK;404|NOT_FOUND/);
   });
+
+  it("pages through all grants, 25 at a time, keeping the list context", async () => {
+    const grant = (i: number) => ({ fkz: `FKZ${i}`, amount_eur: 1000, period_from: null, period_to: null, topic: null, ministry: null });
+    const many = { companies: [{ ...detail.companies[0], funding_count: 60, fundings: [50, 51].map(grant) }] };
+    const requests = stubHasura({ Company: many });
+    const html = await render({ q: "bei", fpage: "3" });
+    expect(requests[0].variables).toMatchObject({ id: ID, fundings_offset: 50 });
+    expect(html).toContain("51–52 von 60, neueste zuerst.");
+    expect(html).toContain('aria-label="Förderungen, Seiten"');
+    expect(link(html, "‹")).toBe(`/companies/${ID}?q=bei&amp;fpage=2#foerderungen`);
+    expect(link(html, "1")).toBe(`/companies/${ID}?q=bei#foerderungen`);
+    expect(html).not.toContain('aria-label="Nächste Seite"'); // page 3 of 3
+  });
+
+  it("shows the last grants page for a page number past the end", async () => {
+    const grant = (i: number) => ({ fkz: `FKZ${i}`, amount_eur: 1000, period_from: null, period_to: null, topic: null, ministry: null });
+    const many = { companies: [{ ...detail.companies[0], funding_count: 60, fundings: [50, 51].map(grant) }] };
+    const requests = stubHasura({ Company: many });
+    const html = await render({ fpage: "99" });
+    expect(requests.map((r) => r.variables.fundings_offset)).toEqual([2450, 50]);
+    expect(html).toContain("51–52 von 60, neueste zuerst.");
+    expect(html).toContain('aria-current="page"');
+    expect(link(html, "‹")).toBe(`/companies/${ID}?fpage=2#foerderungen`);
+  });
+
+  it("has no grants pager when they fit on one page", async () => {
+    stubHasura({ Company: detail });
+    expect(await render({})).not.toContain("Förderungen, Seiten");
+  });
 });
