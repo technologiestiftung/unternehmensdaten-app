@@ -65,8 +65,8 @@ export default async function CompanyPage({
   if (!c) notFound();
 
   const votes = tally(c.feedback, session.userId);
-  const cell = (column: (typeof COLUMNS)[number]) => (
-    <FieldCell company={c} column={column} votes={votes} provenance={c.provenance} corrections />
+  const cell = (column: (typeof COLUMNS)[number], withValue = true) => (
+    <FieldCell company={c} column={column} votes={votes} provenance={c.provenance} corrections withValue={withValue} />
   );
   const fields = COLUMNS.filter((col) => col.key !== "comment").map(
     (col) => [col.label, cell(col)] as const,
@@ -79,7 +79,10 @@ export default async function CompanyPage({
           ← Alle Unternehmen
         </Link>
       </p>
-      <h1 className="mt-3 mb-6">{cell(NAME_COLUMN)}</h1>
+      <div className="mt-3 mb-6">
+        <h1 className="mr-1 inline">{c.name}</h1>
+        {cell(NAME_COLUMN, false)}
+      </div>
       <dl className="grid grid-cols-[minmax(10rem,max-content)_1fr] border-t border-zinc-200 text-sm">
         {fields.map(([label, value]) => (
           <div key={label} className="contents [&:last-child>*]:border-0">

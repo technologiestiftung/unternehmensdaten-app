@@ -44,6 +44,8 @@ export type Column = {
   /** Long free text: clamped to a few lines in the table. */
   long?: boolean;
   numeric?: boolean;
+  /** Several values per company (one per manager name): provenance is matched per value. */
+  multiValue?: boolean;
   /**
    * The values users vote on in this cell; `[MISSING]` when the field is empty. Several values get
    * a vote each (one per manager name). Absent: the cell has no vote (grants are voted on one by
@@ -93,7 +95,7 @@ export const COLUMNS: Column[] = [
       ),
     votes: (c) => one(c.website),
   },
-  { key: "management", label: "Geschäftsführung", render: (c) => text(c.management), long: true, votes: (c) => c.management ? c.management.split(MANAGEMENT_SEPARATOR) : [MISSING] },
+  { key: "management", label: "Geschäftsführung", render: (c) => text(c.management), long: true, multiValue: true, votes: (c) => c.management ? c.management.split(MANAGEMENT_SEPARATOR) : [MISSING] },
   { key: "business_purpose", label: "Tätigkeitsbeschreibung", render: (c) => text(c.business_purpose), long: true, votes: (c) => one(c.business_purpose) },
   { key: "comment", label: "Kommentar", render: (c) => c.comments?.[0]?.body ?? "–", long: true },
   {

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireSession } from "@/lib/auth";
-import { COLUMNS, type CompanyProfile, PROFILE_FIELDS } from "@/lib/columns";
+import { type Column, COLUMNS, type CompanyProfile, PROFILE_FIELDS } from "@/lib/columns";
 import { type FeedbackRow, tally } from "@/lib/feedback";
 import { formatNumber } from "@/lib/format";
 import { hasura } from "@/lib/hasura";
@@ -20,6 +20,13 @@ const PAGE_SIZE = 50;
 const PAGER =
   "text-sm text-zinc-500 hover:text-zinc-900";
 
+/** Long single-valued text is clamped; the ⓘ and ✓/✗ stay outside the clamp so they are not cut off. */
+const LIST_COLUMNS: Column[] = COLUMNS.map((col) =>
+  col.long && !col.multiValue
+    ? { ...col, render: (c) => <div className="line-clamp-2 w-64">{col.render(c)}</div> }
+    : col,
+);
+
 const distinct = (field: string) =>
   `${field}_options: companies(distinct_on: ${field}, order_by: { ${field}: asc }, where: { ${field}: { _is_null: false } }) { ${field} }`;
 
@@ -35,7 +42,7 @@ const COMPANIES = `
       ${PROFILE_FIELDS}
       comments(limit: 1, order_by: { created_at: desc }) { body }
       feedback @include(if: $review) { field_name value verdict author_id }
-      provenance @include(if: $review) { ${PROVENANCE_FIELDS} }
+      provenance { ${PROVENANCE_FIELDS} }
     }
     companies_aggregate(where: $where) { aggregate { count } }
     ${distinct("legal_form")}
@@ -44,7 +51,7 @@ const COMPANIES = `
   }`;
 
 type Result = {
-  companies: (CompanyProfile & { feedback?: FeedbackRow[]; provenance?: Provenance[] })[];
+  companies: (CompanyProfile & { feedback?: FeedbackRow[]; provenance: Provenance[] })[];
   companies_aggregate: { aggregate: { count: number } };
 } & Record<`${keyof FilterOptions}_options`, Record<string, string>[]>;
 
@@ -58,6 +65,7 @@ export default async function CompaniesPage({
   const pageNo = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
   const sort = sortOf(params);
   // Review mode loads the votes and shows the ✓/✗ buttons; off by default to keep the list light.
+  // The ⓘ (provenance) is always shown.
   const review = params.review === "1";
 
   const data = await hasura<Result>(
@@ -140,15 +148,7 @@ export default async function CompaniesPage({
           </thead>
           <tbody>
             {data.companies.map((c) => {
-              const votes = review ? tally(c.feedback ?? [], session.userId) : null;
-              const cells: Partial<Record<string, React.ReactNode>> = votes
-                ? Object.fromEntries(
-                    COLUMNS.filter((col) => col.votes).map((col) => [
-                      col.key,
-                      <FieldCell key={col.key} company={c} column={col} votes={votes} provenance={c.provenance ?? []} />,
-                    ]),
-                  )
-                : {};
+              const votes = review ? tally(c.feedback ?? [], session.userId) : undefined;
               return (
                 <tr key={c.id} className="group hover:bg-zinc-50">
                   <th
@@ -157,21 +157,14 @@ export default async function CompaniesPage({
                   >
                     <Link href={`/companies/${c.id}`}>{c.name}</Link>
                   </th>
-                  {COLUMNS.map((col) => (
+                  {LIST_COLUMNS.map((col) => (
                     <td
                       key={col.key}
                       className={
                         col.numeric ? "text-right whitespace-nowrap tabular-nums" : undefined
                       }
                     >
-                      {cells[col.key] ??
-                        (col.long ? (
-                          <div className="line-clamp-2 w-64">
-                            {col.render(c)}
-                          </div>
-                        ) : (
-                          col.render(c)
-                        ))}
+                      <FieldCell company={c} column={col} votes={votes} provenance={c.provenance} />
                     </td>
                   ))}
                 </tr>

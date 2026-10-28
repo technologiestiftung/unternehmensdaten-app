@@ -194,9 +194,10 @@ export function ProvenanceInfo({
 }
 
 /**
- * One cell: the value(s), each with its origin (ⓘ) and ✓/✗. Used by the list (review mode) and the
+ * One cell: the value(s), each with its origin (ⓘ) and, with `votes`, ✓/✗. Used by the list and the
  * detail page, so every field gets the same controls in one place. An empty field shows "–"; with
- * `corrections`, it offers a form to say what is missing.
+ * `corrections`, it offers a form to say what is missing. `withValue={false}` shows the controls only
+ * (for the name, whose value is the page heading).
  */
 export function FieldCell({
   company,
@@ -204,20 +205,22 @@ export function FieldCell({
   votes,
   provenance,
   corrections = false,
+  withValue = true,
 }: {
   company: CompanyProfile;
   column: Column;
-  votes: Map<string, Tally>;
+  votes?: Map<string, Tally>;
   provenance: Provenance[];
   corrections?: boolean;
+  withValue?: boolean;
 }): ReactNode {
   const values = column.votes?.(company);
   if (!values || !isField(column.key)) return column.render(company);
   const field = column.key;
-  const several = values.length > 1;
+  const several = column.multiValue === true;
   return values.map((value) => {
     if (value === MISSING) {
-      const mine = votes.get(tallyKey(field, MISSING));
+      const mine = votes?.get(tallyKey(field, MISSING));
       return (
         <span key="missing">
           –
@@ -230,12 +233,12 @@ export function FieldCell({
         </span>
       );
     }
-    const tally = votes.get(tallyKey(field, value));
+    const tally = votes?.get(tallyKey(field, value));
     return (
       <span key={value} className="mr-2 inline-block">
-        {several ? value : column.render(company)}
+        {withValue && (several ? value : column.render(company))}
         <ProvenanceInfo label={`${column.label}: ${value}`} rows={provenanceFor(provenance, field, value, several)} />
-        <FeedbackButtons companyId={company.id} field={field} value={value} tally={tally} />
+        {votes && <FeedbackButtons companyId={company.id} field={field} value={value} tally={tally} />}
         {corrections && tally?.mine === "wrong" && (
           <CorrectionForm companyId={company.id} field={field} value={value} saved={tally.mineCorrection} />
         )}
