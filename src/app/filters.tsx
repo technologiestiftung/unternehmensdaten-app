@@ -10,6 +10,8 @@ export type FilterOptions = Record<
   string[]
 >;
 
+export type SourceOption = { key: string; name: string | null };
+
 const SELECTS: { name: keyof FilterOptions; label: string }[] = [
   { name: "legal_form", label: "Rechtsform" },
   { name: "register_status", label: "Registerstatus" },
@@ -25,9 +27,11 @@ const isCheckbox = (el: EventTarget) => el instanceof HTMLInputElement && el.typ
 export function Filters({
   params,
   options,
+  sources,
 }: {
   params: ListParams;
   options: FilterOptions;
+  sources: SourceOption[];
 }) {
   const typingTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   // Dropdowns and checkboxes apply at once; text fields after a pause in typing (or on Enter).
@@ -76,6 +80,17 @@ export function Filters({
           </select>
         </label>
       ))}
+      <label className="flex flex-col gap-1.5 text-xs font-medium text-zinc-500">
+        Quelle
+        <select name="source" defaultValue={params.source ?? ""}>
+          <option value="">alle</option>
+          {sources.map(({ key, name }) => (
+            <option key={key} value={key}>
+              {name ?? key}
+            </option>
+          ))}
+        </select>
+      </label>
       <label className="flex flex-col gap-1.5 text-xs font-medium text-zinc-500">
         WZ beginnt mit
         <input

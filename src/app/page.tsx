@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireSession } from "@/lib/auth";
-import { type Column, COLUMNS, type CompanyProfile, PROFILE_FIELDS } from "@/lib/columns";
+import { type Column, COLUMNS, NAME_COLUMN, type CompanyProfile, PROFILE_FIELDS } from "@/lib/columns";
 import { type FeedbackRow, tally } from "@/lib/feedback";
 import { formatNumber } from "@/lib/format";
 import { hasura } from "@/lib/hasura";
@@ -16,7 +16,7 @@ import {
 } from "@/lib/query";
 import { FieldCell } from "./companies/[id]/feedback-buttons";
 import { type Provenance, PROVENANCE_FIELDS } from "@/lib/provenance";
-import { Filters, type FilterOptions } from "./filters";
+import { Filters, type FilterOptions, type SourceOption } from "./filters";
 
 const PAGER =
   "block min-w-9 border border-transparent px-2 py-1.5 text-center text-zinc-600 hover:border-zinc-300 hover:text-zinc-900 hover:no-underline";
@@ -49,11 +49,13 @@ const COMPANIES = `
     ${distinct("legal_form")}
     ${distinct("register_status")}
     ${distinct("technologiefeld")}
+    sources(order_by: { name: asc }) { key name }
   }`;
 
 type Result = {
   companies: (CompanyProfile & { feedback?: FeedbackRow[]; provenance: Provenance[] })[];
   companies_aggregate: { aggregate: { count: number } };
+  sources: SourceOption[];
 } & Record<`${keyof FilterOptions}_options`, Record<string, string>[]>;
 
 export default async function CompaniesPage({
@@ -117,7 +119,7 @@ export default async function CompaniesPage({
   return (
     <>
       <h1 className="mb-6">Unternehmen</h1>
-      <Filters params={params} options={options} />
+      <Filters params={params} options={options} sources={data.sources} />
       <p className="mb-3 text-sm text-zinc-500 tabular-nums" aria-live="polite">
         {formatNumber(total)} Treffer, Seite {pageNo} von {pages}
       </p>
@@ -165,6 +167,7 @@ export default async function CompaniesPage({
                     >
                       {c.name}
                     </Link>
+                    <FieldCell company={c} column={NAME_COLUMN} votes={votes} provenance={c.provenance} withValue={false} />
                   </th>
                   {LIST_COLUMNS.map((col) => (
                     <td

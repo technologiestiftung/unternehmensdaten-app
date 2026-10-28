@@ -161,6 +161,7 @@ export function FieldCell({
       return (
         <span key="missing" className="block">
           –
+          <ProvenanceInfo label={`${column.label}: kein Wert`} rows={provenanceFor(provenance, field, MISSING, false)} />
           {corrections && (
             <details className="ml-3 inline">
               <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 [&::-webkit-details-marker]:hidden">
