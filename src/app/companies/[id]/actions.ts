@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/auth";
-import { isField, isValidValue, isVerdict, voteChange } from "@/lib/feedback";
+import { isField, isValidValue, isVerdict, REMOVE_VOTE, voteChange } from "@/lib/feedback";
 import { MAX_COMMENT_LENGTH, UUID } from "@/lib/format";
 import { hasura } from "@/lib/hasura";
 
@@ -26,7 +26,15 @@ const SET_VOTE = `
     ) { verdict }
   }`;
 
-/** One vote per user and value; voting again changes it (upsert). */
+// Hasura's delete permission limits this to the signed-in user's own vote.
+const REMOVE_VOTE_MUTATION = `
+  mutation RemoveVote($company_id: uuid!, $field_name: String!, $value: String!) {
+    delete_feedback(
+      where: { company_id: { _eq: $company_id }, field_name: { _eq: $field_name }, value: { _eq: $value } }
+    ) { affected_rows }
+  }`;
+
+/** One vote per user and value; voting again changes it (upsert), the active verdict takes it back. */
 export async function setVote(
   companyId: string,
   field: string,
@@ -35,13 +43,13 @@ export async function setVote(
 ): Promise<void> {
   const session = await requireSession();
   const verdict = String(formData.get("verdict") ?? "");
-  if (
-    !UUID.test(companyId) ||
-    !isField(field) ||
-    !isValidValue(value) ||
-    !isVerdict(verdict)
-  )
+  if (!UUID.test(companyId) || !isField(field) || !isValidValue(value)) return;
+  if (verdict === REMOVE_VOTE) {
+    await hasura(REMOVE_VOTE_MUTATION, { company_id: companyId, field_name: field, value }, session.accessToken);
+    revalidate(companyId);
     return;
+  }
+  if (!isVerdict(verdict)) return;
   const raw = formData.get("correction");
   const change = voteChange(verdict, raw === null ? null : String(raw), value);
   if (!change) return;
@@ -57,6 +65,10 @@ export async function setVote(
     },
     session.accessToken,
   );
+  revalidate(companyId);
+}
+
+function revalidate(companyId: string) {
   revalidatePath(`/companies/${companyId}`);
   revalidatePath("/"); // the list can vote too, in review mode
 }

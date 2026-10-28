@@ -5,6 +5,7 @@ import {
   isField,
   MAX_VALUE_LENGTH,
   MISSING,
+  REMOVE_VOTE,
   type Tally,
   tallyKey,
 } from "@/lib/feedback";
@@ -38,10 +39,10 @@ export function FeedbackButtons({
       <button
         type="submit"
         name="verdict"
-        value={verdict}
+        value={mine ? REMOVE_VOTE : verdict}
         aria-pressed={mine}
         aria-label={`${LABELS[verdict]}: ${value}`}
-        title={LABELS[verdict]}
+        title={mine ? `${LABELS[verdict]} – nochmal klicken zum Zurücknehmen` : LABELS[verdict]}
         className={`inline-flex items-center gap-0.5 px-1 py-0.5 text-xs ${
           mine
             ? verdict === "correct"

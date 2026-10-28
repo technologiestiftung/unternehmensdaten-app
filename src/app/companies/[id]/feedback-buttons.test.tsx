@@ -41,6 +41,13 @@ describe("FieldCell", () => {
     expect(html).not.toContain("<form");
   });
 
+  it("lets the active ✓ take the vote back, while ✗ still changes it", () => {
+    const votes = tally([{ field_name: "legal_form", value: "GmbH", verdict: "correct", correction: null, author_id: "u" }], "u");
+    const html = render("legal_form", { votes });
+    expect(html).toMatch(/<button[^>]*value="remove"[^>]*aria-pressed="true"[^>]*aria-label="stimmt: GmbH"/);
+    expect(html).toMatch(/<button[^>]*value="wrong"[^>]*aria-pressed="false"/);
+  });
+
   it("shows every manager with ✓/✗ in review mode", () => {
     const html = render("management", { votes: tally([], "u") });
     expect(html).toContain("Emil E");

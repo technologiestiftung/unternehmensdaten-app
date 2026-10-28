@@ -75,6 +75,9 @@ export function tally(
 export const isField = (value: string): value is FeedbackField =>
   (FEEDBACK_FIELDS as readonly string[]).includes(value);
 
+/** Sent by the active ✓/✗ instead of its verdict: takes the user's vote back. */
+export const REMOVE_VOTE = "remove";
+
 export const isVerdict = (value: string): value is Verdict =>
   (VERDICTS as readonly string[]).includes(value);
 
