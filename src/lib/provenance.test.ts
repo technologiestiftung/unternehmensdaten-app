@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { COLUMNS, type CompanyProfile, NAME_COLUMN } from "./columns";
 import { FEEDBACK_FIELDS, MISSING } from "./feedback";
-import { evidenceList, methodLabel, type Provenance, provenanceFor } from "./provenance";
+import { evidenceList, methodLabel, type Provenance, provenanceFor, sourcesOf } from "./provenance";
 
 const row = (over: Partial<Provenance>): Provenance => ({
   field_name: "website",
@@ -80,5 +80,15 @@ describe("column votes", () => {
     expect(votesOf("employee_count")).toEqual([MISSING]);
     expect(votesOf("is_ai")).toEqual(["false"]);
     expect(votesOf("revenue")).toEqual(["1000"]);
+  });
+});
+
+describe("sourcesOf", () => {
+  it("keeps one row per source and method, without the per-grant details", () => {
+    const grant = (fkz: string, method = "linked by recipient name and city") =>
+      row({ field_name: "fundings", value: fkz, source_key: "foerderkatalog", source_name: "Förderkatalog", method, link: `https://f.de/${fkz}`, observed_at: "2025-01-01" });
+    const sources = sourcesOf([grant("01A"), grant("02B"), grant("03C", "manual")]);
+    expect(sources.map((s) => s.method)).toEqual(["linked by recipient name and city", "manual"]);
+    expect(sources[0]).toMatchObject({ source_name: "Förderkatalog", value: null, link: null, observed_at: null, confidence: null });
   });
 });

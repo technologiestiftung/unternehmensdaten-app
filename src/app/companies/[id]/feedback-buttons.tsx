@@ -8,7 +8,7 @@ import {
   type Tally,
   tallyKey,
 } from "@/lib/feedback";
-import { type Provenance, provenanceFor } from "@/lib/provenance";
+import { type Provenance, provenanceFor, sourcesOf } from "@/lib/provenance";
 import { setVote } from "./actions";
 import { ProvenanceInfo } from "./provenance-info";
 
@@ -142,7 +142,16 @@ export function FieldCell({
   max?: number;
 }): ReactNode {
   const values = column.votes?.(company);
-  if (!values || !isField(column.key)) return column.render(company);
+  if (!values || !isField(column.key)) {
+    // A sum (Förderungen) has no single value to vote on; the ⓘ names where its parts came from.
+    const sources = sourcesOf(provenance.filter((row) => row.field_name === column.key));
+    return (
+      <>
+        {column.render(company)}
+        <ProvenanceInfo label={column.label} rows={sources} />
+      </>
+    );
+  }
   const field = column.key;
   const several = column.multiValue === true;
   const more = max === undefined ? 0 : Math.max(0, values.length - max);

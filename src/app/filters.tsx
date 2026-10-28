@@ -106,17 +106,26 @@ export function Filters({
           mit Förderungen
         </label>
       </fieldset>
-      <label className="flex items-center gap-2 self-end text-sm">
+      <label className="flex cursor-pointer items-center gap-2.5 self-end text-sm">
         <input
           type="checkbox"
+          role="switch"
           name="review"
           value="1"
           defaultChecked={params.review === "1"}
-        />{" "}
+          className="peer sr-only"
+        />
+        <span
+          aria-hidden="true"
+          className="relative h-5 w-9 shrink-0 border border-zinc-500 bg-white transition-colors peer-checked:border-zinc-900 peer-checked:bg-zinc-900 peer-hover:border-zinc-600 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent after:absolute after:top-0.5 after:left-0.5 after:size-3.5 after:bg-zinc-500 after:transition-transform peer-checked:after:translate-x-4 peer-checked:after:bg-white"
+        />
         Werte bewerten (✓/✗ in der Tabelle)
       </label>
-      <div className="flex items-end justify-end gap-4">
-        <button type="submit">Filtern</button>
+      <div className="flex items-end justify-end">
+        {/* Hidden, but lets Enter in a text field submit when JavaScript is off. */}
+        <button type="submit" hidden>
+          Filtern
+        </button>
         <Link href="/" className="py-2 text-sm text-zinc-500 hover:text-zinc-900">
           Zurücksetzen
         </Link>
