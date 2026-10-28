@@ -95,25 +95,21 @@ export function CorrectionForm({
   return (
     <form
       action={setVote.bind(null, companyId, field, value)}
-      className="mt-2 flex w-full max-w-sm flex-col gap-1"
+      className="mt-2 flex w-full max-w-sm flex-col items-start gap-2"
     >
       <input type="hidden" name="verdict" value="wrong" />
       <label htmlFor={id} className="text-xs font-medium text-zinc-500">
         {value === MISSING ? "Fehlender Wert" : "Richtiger Wert"}
       </label>
-      <span className="flex">
-        <input
-          id={id}
-          name="correction"
-          defaultValue={saved ?? ""}
-          required={value === MISSING}
-          maxLength={MAX_VALUE_LENGTH}
-          className="min-w-0 flex-1 px-2 py-1"
-        />
-        <button type="submit" className="px-3 py-1 text-xs">
-          Speichern
-        </button>
-      </span>
+      <input
+        id={id}
+        name="correction"
+        defaultValue={saved ?? ""}
+        required={value === MISSING}
+        maxLength={MAX_VALUE_LENGTH}
+        className="w-full"
+      />
+      <button type="submit">Speichern</button>
     </form>
   );
 }

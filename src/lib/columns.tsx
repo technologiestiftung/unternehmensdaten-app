@@ -73,7 +73,18 @@ export const COLUMNS: Column[] = [
   {
     key: "fundings",
     label: "Förderungen",
-    render: (c) => (c.funding_count > 0 ? `${c.funding_count} · ${formatEuro(c.funding_total_eur)}` : "–"),
+    // Sum first (the column sorts by it), then how many grants it adds up.
+    render: (c) =>
+      c.funding_count > 0 ? (
+        <>
+          {formatEuro(c.funding_total_eur)}{" "}
+          <span className="text-zinc-500">
+            ({c.funding_count} {c.funding_count === 1 ? "Förderung" : "Förderungen"})
+          </span>
+        </>
+      ) : (
+        "–"
+      ),
     numeric: true,
   },
   { key: "wz_code", label: "WZ-Nummer", render: (c) => text(c.wz_code), votes: (c) => one(c.wz_code) },
