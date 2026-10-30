@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { CompanyProfile } from "@/lib/columns";
-import { MANAGEMENT_SEPARATOR } from "@/lib/feedback";
+import { isValidValue } from "@/lib/feedback";
 import { formatDate } from "@/lib/format";
 import {
   type ClaimRow,
@@ -10,6 +10,7 @@ import {
   formatConfidence,
   HISTORY_LIMIT,
   type HistoryRow,
+  shownValues,
   voteTarget,
 } from "@/lib/history";
 import { setVote } from "./actions";
@@ -20,13 +21,6 @@ const formerValue = (row: HistoryRow) =>
 
 /** Numbers compared as numbers: a claim stores 12 as "12.0", the profile shows 12. */
 const sameValue = (a: string, b: string) => a === b || (a.trim() !== "" && b.trim() !== "" && Number(a) === Number(b));
-
-/** The values the company page shows for a field right now (several for management). */
-function shownValues(field: string, company: CompanyProfile): string[] {
-  const shown = (company as Record<string, unknown>)[field];
-  if (shown == null) return [];
-  return field === "management" ? String(shown).split(MANAGEMENT_SEPARATOR) : [String(shown)];
-}
 
 /**
  * A vote through the same action as the ✓/✗ buttons. "Wiederherstellen" and "Übernehmen" say the shown
@@ -59,9 +53,14 @@ export function History({
   claims?: ClaimRow[];
   toggleHref: string;
 }) {
-  // A value can be voted back only on a votable field, and only when it is not what is shown now.
+  // Only on a votable field, and only with values the vote action accepts (it drops longer ones silently).
+  const votable = (field: string, value: string | null): value is string => {
+    const target = voteTarget(field, company);
+    return value != null && isValidValue(value) && target !== undefined && isValidValue(target);
+  };
+  // A value can be voted back only when it is not what is shown now.
   const restorable = (field: string, value: string | null) =>
-    value != null && voteTarget(field, company) !== undefined && !shownValues(field, company).some((shown) => sameValue(shown, value));
+    votable(field, value) && !shownValues(field, company).some((shown) => sameValue(shown, value));
   return (
     <>
       <h2 id="verlauf" className="mt-10 mb-3 scroll-mt-4">Verlauf</h2>
@@ -72,8 +71,8 @@ export function History({
           <table className="w-full border-collapse text-sm">
             <caption className="caption-bottom px-3 py-2.5 text-left text-xs text-zinc-500">
               Änderungen der angezeigten Werte, neueste zuerst
-              {rows.length >= HISTORY_LIMIT ? ` (die letzten ${HISTORY_LIMIT})` : ""}. Aufgezeichnet seit
-              dem 30.10.2026; ältere Änderungen sind nicht bekannt.
+              {rows.length >= HISTORY_LIMIT ? ` (die letzten ${HISTORY_LIMIT})` : ""}. Änderungen vor Beginn
+              der Aufzeichnung sind nicht bekannt.
             </caption>
             <thead>
               <tr>
@@ -154,7 +153,7 @@ export function History({
                       <VoteButton companyId={company.id} field={claim.field_key}
                         target={voteTarget(claim.field_key, company) ?? ""} correction={claim.value ?? ""} label="Übernehmen" />
                     )}{" "}
-                    {claim.value != null && voteTarget(claim.field_key, company) !== undefined && (
+                    {votable(claim.field_key, claim.value) && (
                       <VoteButton companyId={company.id} field={claim.field_key} target={claim.value} label="Falsch" />
                     )}
                   </td>

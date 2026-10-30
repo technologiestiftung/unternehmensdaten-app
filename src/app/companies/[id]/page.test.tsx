@@ -134,7 +134,7 @@ describe("company history", () => {
 });
 
 describe("restoring from the history", () => {
-  const base = { ...detail.companies[0], address: "Neue Straße 1", employee_count: 12 };
+  const base = { ...detail.companies[0], address: "Neue Straße 1", employee_count: 12, deeptech_class: "A" };
   const replaced = {
     id: 3, field_key: "address", event: "replaced", value: "Neue Straße 1", previous_value: "Weg 1, Berlin",
     confidence: 0.8, previous_confidence: 1, source_name: "Testquelle", changed_at: "2026-10-30T09:00:00Z",
@@ -143,6 +143,7 @@ describe("restoring from the history", () => {
     { id: "a", field_key: "employee_count", value: "12.0", confidence: 1, is_shown: true, method: null, source_name: "Register", read_at: null },
     { id: "b", field_key: "address", value: "Weg 1, Berlin", confidence: 0.3, is_shown: false, method: null, source_name: "Register", read_at: null },
     { id: "c", field_key: "postcode", value: "10115", confidence: 1, is_shown: true, method: null, source_name: "Register", read_at: null },
+    { id: "d", field_key: "deeptech", value: "A", confidence: 1, is_shown: true, method: null, source_name: "Modell", read_at: null },
   ];
   const html = async () => {
     stubHasura({ Company: { companies: [{ ...base, history: [replaced] }] }, Claims: { company_claims: claims } });
@@ -160,13 +161,23 @@ describe("restoring from the history", () => {
 
   it("offers to adopt a claim that is not shown, never one equal to the shown value", async () => {
     const adopt = forms(await html(), "Übernehmen");
-    expect(adopt).toHaveLength(1); // the address, not the employee count shown as 12 ("12.0")
+    expect(adopt).toHaveLength(1); // the address, not the employee count shown as 12 ("12.0") nor the shown DeepTech class
     expect(adopt[0]).toContain('value="Weg 1, Berlin"');
   });
 
   it("lets every claim of a votable field be marked wrong, and none of a field without votes", async () => {
     const wrong = forms(await html(), "Falsch");
-    expect(wrong).toHaveLength(2); // employee count and address; the postcode has no vote
+    expect(wrong).toHaveLength(3); // employee count, address and DeepTech class; the postcode has no vote
     expect(wrong.every((f) => !f.includes('name="correction"'))).toBe(true);
+  });
+
+  it("offers no vote on a value longer than the vote action accepts", async () => {
+    const long = "x".repeat(501);
+    stubHasura({
+      Company: { companies: [{ ...base, history: [{ ...replaced, previous_value: long }] }] },
+      Claims: { company_claims: [{ ...claims[1], value: long }] },
+    });
+    const page = await render({ claims: "1" });
+    for (const label of ["Wiederherstellen", "Übernehmen", "Falsch"]) expect(forms(page, label)).toHaveLength(0);
   });
 });

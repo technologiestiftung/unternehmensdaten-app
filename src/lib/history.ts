@@ -43,10 +43,16 @@ const EXTRA_LABELS: Record<string, string> = {
   register_announcement: "Registerbekanntmachung",
 };
 
+const column = (key: string) => [NAME_COLUMN, ...COLUMNS].find((c) => c.key === key);
+
 /** The German label of a field key, as the profile table names it; the key itself if unknown. */
 export function fieldLabel(key: string): string {
-  return [NAME_COLUMN, ...COLUMNS].find((c) => c.key === key)?.label ?? EXTRA_LABELS[key] ?? key;
+  return column(key)?.label ?? EXTRA_LABELS[key] ?? key;
 }
+
+/** The values the company page shows for a field right now, as its column votes on them; none when empty. */
+export const shownValues = (field: string, company: CompanyProfile): string[] =>
+  (column(field)?.votes?.(company) ?? []).filter((value) => value !== MISSING);
 
 export const EVENT_LABELS: Record<HistoryRow["event"], string> = {
   shown: "angezeigt",
@@ -73,7 +79,7 @@ export function describeChange(row: HistoryRow): string {
  * voted against.
  */
 export function voteTarget(field: string, company: CompanyProfile): string | undefined {
-  const column = [NAME_COLUMN, ...COLUMNS].find((c) => c.key === field);
-  if (!column?.votes || !isField(field)) return undefined;
-  return column.multiValue ? MISSING : column.votes(company)[0];
+  const votable = column(field);
+  if (!votable?.votes || !isField(field)) return undefined;
+  return votable.multiValue ? MISSING : votable.votes(company)[0];
 }
