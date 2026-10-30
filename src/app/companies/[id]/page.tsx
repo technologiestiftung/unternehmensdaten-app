@@ -234,6 +234,7 @@ export default async function CompanyPage({
       )}
 
       <History
+        company={c}
         rows={c.history}
         claims={claims?.company_claims}
         toggleHref={`${withParams(list, { claims: showClaims ? undefined : "1" }, `/companies/${id}`)}#verlauf`}

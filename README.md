@@ -10,7 +10,8 @@ where it came from: source, method, confidence, date and the page it was checked
 **Quellen** (`/sources`, linked in the header) shows per source its latest run, the companies it covers
 and, per field, how many values it stored and how many the app shows. The company page also has a
 **Verlauf**: every change of a shown value (old → new, source, confidence) and, behind a toggle,
-every claim any source made, shown or not. It runs on the
+every claim any source made, shown or not. A former value can be restored and a claim marked
+wrong from there: both are ordinary votes, so a restored value is shown once a second person agrees. It runs on the
 **Berlin Data Hub** (data-hub.berlin).
 
 The app has **no database access of its own**. It is a Next.js server that:

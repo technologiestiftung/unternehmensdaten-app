@@ -1,4 +1,5 @@
-import { COLUMNS, NAME_COLUMN } from "./columns";
+import { COLUMNS, type CompanyProfile, NAME_COLUMN } from "./columns";
+import { isField, MISSING } from "./feedback";
 
 /** One change of a shown value (`v_company_history`, Hasura: the profile's `history`). */
 export type HistoryRow = {
@@ -62,4 +63,17 @@ export function describeChange(row: HistoryRow): string {
   if (row.event === "replaced") return `${row.previous_value ?? "–"} → ${row.value ?? "–"}`;
   if (row.event === "removed") return row.value ?? row.previous_value ?? "–";
   return row.value ?? "–";
+}
+
+/**
+ * The value a restore or a "wrong" vote is cast on for a field, or undefined when users cannot vote
+ * on it. Restoring X is the vote "the shown value is wrong, it should be X" (#45 rules: one person's
+ * correction is shown only once a second agrees, or when the field is empty). A field with several
+ * values (management) gets X added: the vote is cast on the missing value, so no shown name is
+ * voted against.
+ */
+export function voteTarget(field: string, company: CompanyProfile): string | undefined {
+  const column = [NAME_COLUMN, ...COLUMNS].find((c) => c.key === field);
+  if (!column?.votes || !isField(field)) return undefined;
+  return column.multiValue ? MISSING : column.votes(company)[0];
 }
