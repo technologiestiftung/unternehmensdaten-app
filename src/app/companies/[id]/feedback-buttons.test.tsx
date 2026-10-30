@@ -11,10 +11,10 @@ vi.mock("./actions", () => ({ setVote: async () => {} }));
 const company = {
   id: "c1", name: "Beispiel GmbH", employee_count: null, revenue: 1000, funding_count: 0,
   funding_total_eur: null, wz_code: null, established_at: null, address: "Weg 1", legal_form: "GmbH",
-  cluster: null, technologiefeld: null, website: "https://a.de",
+  technology_field: null, website: "https://a.de",
   management: "Anna A; Bert B; Cora C; Dirk D; Emil E",
   business_purpose: null, deeptech_class: null, deeptech_confidence: null, is_ai: false,
-  amazon_effect: null, register_status: "aktiv", updated_at: null,
+  register_status: "aktiv", updated_at: null,
 } satisfies CompanyProfile;
 
 const prov = (over: Partial<Provenance>): Provenance => ({
@@ -77,13 +77,13 @@ describe("FieldCell", () => {
   });
 
   it("shows an ⓘ on an empty field too", () => {
-    const html = render("cluster");
-    expect(html).toContain('aria-label="Herkunft: Cluster: kein Wert"');
+    const html = render("technology_field");
+    expect(html).toContain('aria-label="Herkunft: Technologiefeld: kein Wert"');
     expect(html).toContain("Keine Quelle erfasst.");
   });
 
   it("lets an empty field be reported as missing, with a required value", () => {
-    const html = render("cluster", { votes: tally([], "u"), corrections: true });
+    const html = render("technology_field", { votes: tally([], "u"), corrections: true });
     expect(html).toContain("Wert ergänzen");
     expect(html).toMatch(/<input[^>]*required/);
   });

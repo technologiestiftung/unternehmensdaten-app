@@ -12,14 +12,12 @@ export const FEEDBACK_FIELDS = [
   "employee_count",
   "revenue",
   "fundings",
-  "cluster",
-  "technologiefeld",
+  "technology_field",
   "website",
   "management",
   "business_purpose",
   "deeptech",
   "is_ai",
-  "amazon_effect",
 ] as const;
 export type FeedbackField = (typeof FEEDBACK_FIELDS)[number];
 

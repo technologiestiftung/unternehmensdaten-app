@@ -33,7 +33,7 @@ const list = (total: number, companies = [company()]) => ({
     companies_aggregate: { aggregate: { count: total } },
     legal_form_options: [{ legal_form: "GmbH" }, { legal_form: "AG" }],
     register_status_options: [],
-    technologiefeld_options: [],
+    technology_field_options: [],
     sources: [],
   },
 });

@@ -14,15 +14,13 @@ export type CompanyProfile = {
   established_at: string | null;
   address: string | null;
   legal_form: string | null;
-  cluster: string | null;
-  technologiefeld: string | null;
+  technology_field: string | null;
   website: string | null;
   management: string | null;
   business_purpose: string | null;
   deeptech_class: string | null;
   deeptech_confidence: number | null;
   is_ai: boolean | null;
-  amazon_effect: string | null;
   register_status: string | null;
   updated_at: string | null;
   /** The newest comment only; the detail page loads all of them. */
@@ -32,8 +30,8 @@ export type CompanyProfile = {
 /** The GraphQL selection for every column below. */
 export const PROFILE_FIELDS = `
   id name employee_count revenue funding_count funding_total_eur wz_code established_at
-  address legal_form cluster technologiefeld website management business_purpose
-  deeptech_class deeptech_confidence is_ai amazon_effect register_status updated_at`;
+  address legal_form technology_field website management business_purpose
+  deeptech_class deeptech_confidence is_ai register_status updated_at`;
 
 export const text = (value: string | null) => value ?? "–";
 
@@ -91,8 +89,7 @@ export const COLUMNS: Column[] = [
   { key: "established_at", label: "Gründungsdatum", render: (c) => formatDate(c.established_at), votes: (c) => one(c.established_at) },
   { key: "address", label: "Adresse", render: (c) => text(c.address), long: true, votes: (c) => one(c.address) },
   { key: "legal_form", label: "Rechtsform", render: (c) => text(c.legal_form), votes: (c) => one(c.legal_form) },
-  { key: "cluster", label: "Cluster", render: (c) => text(c.cluster), votes: (c) => one(c.cluster) },
-  { key: "technologiefeld", label: "Technologiefeld", render: (c) => text(c.technologiefeld), votes: (c) => one(c.technologiefeld) },
+  { key: "technology_field", label: "Technologiefeld", render: (c) => text(c.technology_field), votes: (c) => one(c.technology_field) },
   {
     key: "website",
     label: "Website",
@@ -117,7 +114,6 @@ export const COLUMNS: Column[] = [
     votes: (c) => one(c.deeptech_class),
   },
   { key: "is_ai", label: "KI-Unternehmen", render: (c) => (c.is_ai == null ? "–" : c.is_ai ? "ja" : "nein"), votes: (c) => one(c.is_ai) },
-  { key: "amazon_effect", label: "Amazon-Effekt", render: (c) => text(c.amazon_effect), votes: (c) => one(c.amazon_effect) },
   { key: "register_status", label: "Registerstatus", render: (c) => text(c.register_status), votes: (c) => one(c.register_status) },
   { key: "updated_at", label: "Stand", render: (c) => formatDate(c.updated_at) },
 ];
