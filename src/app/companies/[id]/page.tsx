@@ -10,12 +10,14 @@ import {
   text,
 } from "@/lib/columns";
 import { formatDate, formatEuro, MAX_COMMENT_LENGTH, UUID } from "@/lib/format";
+import { CLAIM_FIELDS, type ClaimRow, HISTORY_FIELDS, HISTORY_LIMIT, type HistoryRow } from "@/lib/history";
 import { hasura } from "@/lib/hasura";
 import { type Provenance, PROVENANCE_FIELDS, provenanceFor } from "@/lib/provenance";
 import { listParams, neighbours, orderBy, PAGE_SIZE, where, withParams } from "@/lib/query";
 import { Pager } from "@/app/pager";
 import { addComment } from "./actions";
 import { FeedbackButtons, FieldCell } from "./feedback-buttons";
+import { History } from "./history";
 import { ProvenanceInfo } from "./provenance-info";
 
 const FUNDINGS_PAGE_SIZE = 25;
@@ -30,6 +32,15 @@ const COMPANY = `
       comments(order_by: { created_at: desc }) { id body author_id created_at }
       feedback { field_name value verdict correction author_id }
       provenance { ${PROVENANCE_FIELDS} }
+      history(order_by: [{ changed_at: desc }, { id: desc }], limit: ${HISTORY_LIMIT}) { ${HISTORY_FIELDS} }
+    }
+  }`;
+
+// Every claim of every source: loaded only when the history's "all claims" toggle is on (?claims=1).
+const CLAIMS = `
+  query Claims($id: uuid!) {
+    company_claims(where: { company_id: { _eq: $id } }, order_by: [{ field_key: asc }, { is_shown: desc }, { confidence: desc_nulls_last }]) {
+      ${CLAIM_FIELDS}
     }
   }`;
 
@@ -58,6 +69,7 @@ type Company = Omit<CompanyProfile, "comments"> & {
   }[];
   feedback: FeedbackRow[];
   provenance: Provenance[];
+  history: HistoryRow[];
 };
 
 export default async function CompanyPage({
@@ -83,7 +95,8 @@ export default async function CompanyPage({
       )
     ).companies[0];
 
-  const [first, around] = await Promise.all([
+  const showClaims = list.claims === "1";
+  const [first, around, claims] = await Promise.all([
     loadCompany(fundingsPage),
     pos === undefined
       ? undefined
@@ -92,6 +105,9 @@ export default async function CompanyPage({
           { where: where(list), order_by: orderBy(list), offset },
           session.accessToken,
         ),
+    showClaims
+      ? hasura<{ company_claims: ClaimRow[] }>(CLAIMS, { id }, session.accessToken)
+      : undefined,
   ]);
   let c = first;
   if (!c) notFound();
@@ -103,7 +119,7 @@ export default async function CompanyPage({
   }
   const { prev, next } = around ? neighbours(around.companies, id, offset) : {};
   const href = (n: { id: string; pos: number }) =>
-    withParams(list, { pos: String(n.pos), fpage: undefined }, `/companies/${n.id}`);
+    withParams(list, { pos: String(n.pos), fpage: undefined, claims: undefined }, `/companies/${n.id}`);
   const firstFunding = (fundingsPage - 1) * FUNDINGS_PAGE_SIZE + 1;
 
   const votes = tally(c.feedback, session.userId);
@@ -118,7 +134,7 @@ export default async function CompanyPage({
     <div className="mx-auto max-w-4xl">
       <nav aria-label="Unternehmen blättern" className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
         <Link
-          href={withParams(list, { pos: undefined, fpage: undefined, page: pos === undefined ? undefined : String(Math.floor(pos / PAGE_SIZE) + 1) })}
+          href={withParams(list, { pos: undefined, fpage: undefined, claims: undefined, page: pos === undefined ? undefined : String(Math.floor(pos / PAGE_SIZE) + 1) })}
           className={NAV}
         >
           ← Alle Unternehmen
@@ -216,6 +232,13 @@ export default async function CompanyPage({
           />
         </nav>
       )}
+
+      <History
+        company={c}
+        rows={c.history}
+        claims={claims?.company_claims}
+        toggleHref={`${withParams(list, { claims: showClaims ? undefined : "1" }, `/companies/${id}`)}#verlauf`}
+      />
 
       <h2 className="mt-10 mb-3">Kommentare</h2>
       <form
