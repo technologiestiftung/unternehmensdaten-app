@@ -58,12 +58,12 @@ describe("tally", () => {
     const result = tally(
       [
         vote("X", "correct", "u1", "management"),
-        vote("X", "wrong", "u1", "technologiefeld"),
+        vote("X", "wrong", "u1", "technology_field"),
       ],
       "u1",
     );
     expect(result.get(tallyKey("management", "X"))?.mine).toBe("correct");
-    expect(result.get(tallyKey("technologiefeld", "X"))?.mine).toBe("wrong");
+    expect(result.get(tallyKey("technology_field", "X"))?.mine).toBe("wrong");
   });
 
   it("ignores unknown verdicts", () => {

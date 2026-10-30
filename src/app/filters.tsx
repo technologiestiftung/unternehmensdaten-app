@@ -7,7 +7,7 @@ import { type ListParams, withParams } from "@/lib/query";
 import { Switch } from "./switch";
 
 export type FilterOptions = Record<
-  "legal_form" | "register_status" | "technologiefeld",
+  "legal_form" | "register_status" | "technology_field",
   string[]
 >;
 
@@ -16,7 +16,7 @@ export type SourceOption = { key: string; name: string | null };
 const SELECTS: { name: keyof FilterOptions; label: string }[] = [
   { name: "legal_form", label: "Rechtsform" },
   { name: "register_status", label: "Registerstatus" },
-  { name: "technologiefeld", label: "Technologiefeld" },
+  { name: "technology_field", label: "Technologiefeld" },
 ];
 
 // Pause after the last keystroke before a text field filters, so typing a word sends one request.

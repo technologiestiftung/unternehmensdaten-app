@@ -5,9 +5,9 @@ import type { CompanyProfile } from "@/lib/columns";
 export const company = (over: Partial<CompanyProfile> = {}): CompanyProfile => ({
   id: "00000000-0000-4000-8000-000000000001", name: "Beispiel GmbH", employee_count: 12, revenue: 1000,
   funding_count: 0, funding_total_eur: null, wz_code: "62.01", established_at: "2010-01-01",
-  address: "Weg 1, Berlin", legal_form: "GmbH", cluster: null, technologiefeld: null,
+  address: "Weg 1, Berlin", legal_form: "GmbH", technology_field: null,
   website: "https://a.de", management: "Anna A", business_purpose: null, deeptech_class: null,
-  deeptech_confidence: null, is_ai: false, amazon_effect: null, register_status: "aktiv",
+  deeptech_confidence: null, is_ai: false, register_status: "aktiv",
   updated_at: null, ...over,
 });
 

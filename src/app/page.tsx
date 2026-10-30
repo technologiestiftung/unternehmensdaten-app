@@ -52,7 +52,7 @@ const COMPANIES = `
     companies_aggregate(where: $where) { aggregate { count } }
     ${distinct("legal_form")}
     ${distinct("register_status")}
-    ${distinct("technologiefeld")}
+    ${distinct("technology_field")}
     sources(order_by: { name: asc }) { key name }
   }`;
 
@@ -89,7 +89,7 @@ export default async function CompaniesPage({
   const total = data.companies_aggregate.aggregate.count;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const options = Object.fromEntries(
-    (["legal_form", "register_status", "technologiefeld"] as const).map((f) => [
+    (["legal_form", "register_status", "technology_field"] as const).map((f) => [
       f,
       data[`${f}_options`].map((row) => row[f]),
     ]),

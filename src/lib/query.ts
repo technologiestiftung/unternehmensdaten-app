@@ -15,8 +15,7 @@ export const SORTABLE = {
   established_at: "established_at",
   address: "address",
   legal_form: "legal_form",
-  cluster: "cluster",
-  technologiefeld: "technologiefeld",
+  technology_field: "technology_field",
   website: "website",
   deeptech: "deeptech_confidence",
   is_ai: "is_ai",
@@ -35,7 +34,7 @@ export const COLS_COOKIE = "cols";
 export const SELECT_FILTERS = {
   legal_form: "legal_form",
   register_status: "register_status",
-  technologiefeld: "technologiefeld",
+  technology_field: "technology_field",
 } as const;
 
 export type ListParams = {
