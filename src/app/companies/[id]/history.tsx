@@ -54,13 +54,15 @@ export function History({
   toggleHref: string;
 }) {
   // Only on a votable field, and only with values the vote action accepts (it drops longer ones silently).
-  const votable = (field: string, value: string | null): value is string => {
-    const target = voteTarget(field, company);
-    return value != null && isValidValue(value) && target !== undefined && isValidValue(target);
-  };
-  // A value can be voted back only when it is not what is shown now.
+  const votable = (field: string, value: string | null): value is string =>
+    value != null && isValidValue(value) && voteTarget(field, company) !== undefined;
+  // A value can be voted back only when it is not what is shown now; the vote is cast on the shown value.
   const restorable = (field: string, value: string | null) =>
-    votable(field, value) && !shownValues(field, company).some((shown) => sameValue(shown, value));
+    votable(field, value) && isValidValue(voteTarget(field, company) ?? "") &&
+    !shownValues(field, company).some((shown) => sameValue(shown, value));
+  // A value as the profile votes on it: the shown string when it is the shown value, else 12 for "12.0".
+  const asShown = (field: string, value: string) =>
+    shownValues(field, company).find((shown) => sameValue(shown, value)) ?? value.replace(/^(-?\d+)\.0+$/, "$1");
   return (
     <>
       <h2 id="verlauf" className="mt-10 mb-3 scroll-mt-4">Verlauf</h2>
@@ -101,7 +103,7 @@ export function History({
                   <td className="whitespace-nowrap">
                     {restorable(row.field_key, formerValue(row)) && (
                       <VoteButton companyId={company.id} field={row.field_key}
-                        target={voteTarget(row.field_key, company) ?? ""} correction={formerValue(row) ?? ""}
+                        target={voteTarget(row.field_key, company) ?? ""} correction={asShown(row.field_key, formerValue(row) ?? "")}
                         label="Wiederherstellen" />
                     )}
                   </td>
@@ -151,10 +153,10 @@ export function History({
                   <td className="whitespace-nowrap">
                     {restorable(claim.field_key, claim.value) && (
                       <VoteButton companyId={company.id} field={claim.field_key}
-                        target={voteTarget(claim.field_key, company) ?? ""} correction={claim.value ?? ""} label="Übernehmen" />
+                        target={voteTarget(claim.field_key, company) ?? ""} correction={asShown(claim.field_key, claim.value ?? "")} label="Übernehmen" />
                     )}{" "}
                     {votable(claim.field_key, claim.value) && (
-                      <VoteButton companyId={company.id} field={claim.field_key} target={claim.value} label="Falsch" />
+                      <VoteButton companyId={company.id} field={claim.field_key} target={asShown(claim.field_key, claim.value)} label="Falsch" />
                     )}
                   </td>
                 </tr>

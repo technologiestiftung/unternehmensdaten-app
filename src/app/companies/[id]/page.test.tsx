@@ -5,7 +5,14 @@ import CompanyPage from "./page";
 
 // Integration: URL → Hasura variables → rendered company page. Only the session and the network are stubbed.
 vi.mock("@/lib/auth", () => ({ requireSession: async () => ({ accessToken: "token", userId: "u1" }) }));
+// The votes each button would cast: [company id, field, value] as bound to setVote.
+const votes = vi.hoisted(() => [] as unknown[][]);
+vi.mock("./actions", () => ({
+  setVote: { bind: (_: unknown, ...args: unknown[]) => (votes.push(args), async () => {}) },
+  addComment: async () => {},
+}));
 afterEach(() => {
+  votes.length = 0;
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
@@ -169,6 +176,30 @@ describe("restoring from the history", () => {
     const wrong = forms(await html(), "Falsch");
     expect(wrong).toHaveLength(3); // employee count, address and DeepTech class; the postcode has no vote
     expect(wrong.every((f) => !f.includes('name="correction"'))).toBe(true);
+  });
+
+  it("marks a number claim wrong on the value the profile shows, not the claim's \"12.0\"", async () => {
+    stubHasura({
+      Company: { companies: [{ ...base, history: [] }] },
+      Claims: { company_claims: [claims[0], { ...claims[0], id: "e", value: "13.0", is_shown: false }] },
+    });
+    const page = await render({ claims: "1" });
+    expect(votes).toContainEqual([ID, "employee_count", "13"]);
+    expect(votes.flat()).not.toContain("12.0");
+    expect(votes.flat()).not.toContain("13.0");
+    expect(forms(page, "Übernehmen")[0]).toContain('name="correction" value="13"');
+  });
+
+  it("lets a short claim be marked wrong even when the shown value is too long to vote on", async () => {
+    const shown = "x".repeat(600);
+    stubHasura({
+      Company: { companies: [{ ...base, business_purpose: shown, history: [] }] },
+      Claims: { company_claims: [{ ...claims[1], field_key: "business_purpose", value: "Software" }] },
+    });
+    const page = await render({ claims: "1" });
+    expect(forms(page, "Übernehmen")).toHaveLength(0);
+    expect(forms(page, "Falsch")).toHaveLength(1);
+    expect(votes).toContainEqual([ID, "business_purpose", "Software"]);
   });
 
   it("offers no vote on a value longer than the vote action accepts", async () => {
