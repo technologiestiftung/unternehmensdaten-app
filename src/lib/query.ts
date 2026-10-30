@@ -54,6 +54,8 @@ export type ListParams = {
   pos?: string;
   /** On a company page: the page of its grants table. */
   fpage?: string;
+  /** On a company page: "1" also loads every claim of every source into the history. */
+  claims?: string;
   /** Comma-separated keys of the columns to show; absent (or none valid) shows all. */
   cols?: string;
 } & Partial<Record<keyof typeof SELECT_FILTERS, string>>;

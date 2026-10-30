@@ -11,7 +11,7 @@ afterEach(() => {
 });
 
 const ID = "00000000-0000-4000-8000-000000000002";
-const detail = { companies: [{ ...company({ id: ID, name: "Mitte AG" }), fundings: [], comments: [], feedback: [], provenance: [] }] };
+const detail = { companies: [{ ...company({ id: ID, name: "Mitte AG" }), fundings: [], comments: [], feedback: [], provenance: [], history: [] }] };
 const around = (...names: string[]) => ({
   companies: names.map((name, i) => ({ id: name === "Mitte AG" ? ID : `00000000-0000-4000-8000-00000000001${i}`, name })),
 });
@@ -93,5 +93,42 @@ describe("company page", () => {
   it("has no grants pager when they fit on one page", async () => {
     stubHasura({ Company: detail });
     expect(await render({})).not.toContain("Förderungen, Seiten");
+  });
+});
+
+describe("company history", () => {
+  const change = {
+    id: 2, field_key: "address", event: "replaced", value: "Neue Straße 1", previous_value: "Weg 1, Berlin",
+    confidence: 0.8, previous_confidence: 1, source_name: "Testquelle", changed_at: "2026-10-30T09:00:00Z",
+  };
+  const withHistory = { companies: [{ ...detail.companies[0], history: [change] }] };
+
+  it("shows each change of a shown value with old and new value and confidence", async () => {
+    const requests = stubHasura({ Company: withHistory });
+    const html = await render({});
+    expect(html).toContain("Verlauf");
+    expect(html).toContain("Adresse");
+    expect(html).toContain("Weg 1, Berlin → Neue Straße 1");
+    expect(html).toMatch(/100\s%\s→\s80\s%/); // de-DE puts a no-break space before %
+    expect(requests.map((r) => r.operation)).not.toContain("Claims");
+  });
+
+  it("loads every claim only when the toggle asks for it, and the toggle goes back", async () => {
+    const claim = {
+      id: "c1", field_key: "website", value: "https://kandidat.de", confidence: 0.2, is_shown: false,
+      method: null, source_name: "Website-Suche", read_at: "2026-10-01T00:00:00Z",
+    };
+    const requests = stubHasura({ Company: withHistory, Claims: { company_claims: [claim] } });
+    const html = await render({ claims: "1" });
+    expect(requests.find((r) => r.operation === "Claims")?.variables).toEqual({ id: ID });
+    expect(html).toContain("https://kandidat.de");
+    expect(link(html, "Nur angezeigte Werte")).toBe(`/companies/${ID}#verlauf`);
+  });
+
+  it("does not carry the toggle to the next company or back to the list", async () => {
+    stubHasura({ Company: withHistory, Claims: { company_claims: [] }, Neighbours: around("Mitte AG", "Zweite GmbH") });
+    const html = await render({ claims: "1", pos: "0" });
+    expect(link(html, "Nächstes ›")).not.toContain("claims");
+    expect(link(html, "← Alle Unternehmen")).not.toContain("claims");
   });
 });
