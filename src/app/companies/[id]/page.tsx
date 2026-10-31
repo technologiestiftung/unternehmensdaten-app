@@ -237,6 +237,7 @@ export default async function CompanyPage({
         company={c}
         rows={c.history}
         claims={claims?.company_claims}
+        votes={votes}
         toggleHref={`${withParams(list, { claims: showClaims ? undefined : "1" }, `/companies/${id}`)}#verlauf`}
       />
 

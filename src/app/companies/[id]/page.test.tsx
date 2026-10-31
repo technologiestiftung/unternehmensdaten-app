@@ -156,6 +156,9 @@ describe("restoring from the history", () => {
     stubHasura({ Company: { companies: [{ ...base, history: [replaced] }] }, Claims: { company_claims: claims } });
     return render({ claims: "1" });
   };
+  // The ✗ buttons of the claims table (the profile above has its own ✓/✗ for the shown values).
+  const wrongs = (page: string) =>
+    [...page.slice(page.indexOf("Jede Angabe")).matchAll(/aria-label="falsch: ([^"]*)"/g)].map((m) => m[1]);
   const forms = (page: string, label: string) =>
     [...page.matchAll(new RegExp(`<form[^>]*>(?:(?!</form>).)*>${label}</button></form>`, "g"))].map((m) => m[0]);
 
@@ -172,10 +175,18 @@ describe("restoring from the history", () => {
     expect(adopt[0]).toContain('value="Weg 1, Berlin"');
   });
 
-  it("lets every claim of a votable field be marked wrong, and none of a field without votes", async () => {
-    const wrong = forms(await html(), "Falsch");
-    expect(wrong).toHaveLength(3); // employee count, address and DeepTech class; the postcode has no vote
-    expect(wrong.every((f) => !f.includes('name="correction"'))).toBe(true);
+  it("gives every claim of a votable field the usual ✓/✗, and none of a field without votes", async () => {
+    const page = await html();
+    expect(wrongs(page)).toEqual(["12", "Weg 1, Berlin", "A"]); // the postcode has no vote
+    expect(page).not.toContain(">Falsch</button>");
+  });
+
+  it("shows your own vote on a claim like everywhere else, ready to be taken back", async () => {
+    const feedback = [{ field_name: "address", value: "Weg 1, Berlin", verdict: "wrong", correction: null, author_id: "u1" }];
+    stubHasura({ Company: { companies: [{ ...base, feedback, history: [] }] }, Claims: { company_claims: [claims[1]] } });
+    const page = await render({ claims: "1" });
+    const claimsTable = page.slice(page.indexOf("Jede Angabe"));
+    expect(claimsTable).toMatch(/<button[^>]*value="remove"[^>]*aria-pressed="true"[^>]*aria-label="falsch: Weg 1, Berlin"/);
   });
 
   it("marks a number claim wrong on the value the profile shows, not the claim's \"12.0\"", async () => {
@@ -198,7 +209,7 @@ describe("restoring from the history", () => {
     });
     const page = await render({ claims: "1" });
     expect(forms(page, "Übernehmen")).toHaveLength(0);
-    expect(forms(page, "Falsch")).toHaveLength(1);
+    expect(wrongs(page)).toEqual(["Software"]);
     expect(votes).toContainEqual([ID, "business_purpose", "Software"]);
   });
 
@@ -209,6 +220,7 @@ describe("restoring from the history", () => {
       Claims: { company_claims: [{ ...claims[1], value: long }] },
     });
     const page = await render({ claims: "1" });
-    for (const label of ["Wiederherstellen", "Übernehmen", "Falsch"]) expect(forms(page, label)).toHaveLength(0);
+    for (const label of ["Wiederherstellen", "Übernehmen"]) expect(forms(page, label)).toHaveLength(0);
+    expect(wrongs(page)).toEqual([]);
   });
 });

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { CompanyProfile } from "@/lib/columns";
-import { isValidValue } from "@/lib/feedback";
+import { isField, isValidValue, type Tally, tallyKey } from "@/lib/feedback";
 import { formatDate } from "@/lib/format";
 import {
   type ClaimRow,
@@ -14,6 +14,7 @@ import {
   voteTarget,
 } from "@/lib/history";
 import { setVote } from "./actions";
+import { FeedbackButtons } from "./feedback-buttons";
 
 /** The value a history row is about that might be wanted back: the old one, not the new one. */
 const formerValue = (row: HistoryRow) =>
@@ -23,8 +24,8 @@ const formerValue = (row: HistoryRow) =>
 const sameValue = (a: string, b: string) => a === b || (a.trim() !== "" && b.trim() !== "" && Number(a) === Number(b));
 
 /**
- * A vote through the same action as the ✓/✗ buttons. "Wiederherstellen" and "Übernehmen" say the shown
- * value is wrong and should be `value`; "Falsch" votes against `value` itself.
+ * A correction through the same action as the ✓/✗ buttons: "Wiederherstellen" and "Übernehmen" say the
+ * shown value is wrong and should be `value`. Styled like an inactive ✓/✗, not as a main button.
  */
 function VoteButton({ companyId, field, target, correction, label }: {
   companyId: string; field: string; target: string; correction?: string; label: string;
@@ -33,7 +34,9 @@ function VoteButton({ companyId, field, target, correction, label }: {
     <form action={setVote.bind(null, companyId, field, target)} className="inline">
       <input type="hidden" name="verdict" value="wrong" />
       {correction !== undefined && <input type="hidden" name="correction" value={correction} />}
-      <button type="submit" className="text-xs">{label}</button>
+      <button type="submit" className="border border-zinc-200 bg-white px-1.5 py-0.5 text-xs font-normal text-zinc-700 hover:bg-zinc-100">
+        {label}
+      </button>
     </form>
   );
 }
@@ -46,11 +49,13 @@ export function History({
   company,
   rows,
   claims,
+  votes,
   toggleHref,
 }: {
   company: CompanyProfile;
   rows: HistoryRow[];
   claims?: ClaimRow[];
+  votes: Map<string, Tally>;
   toggleHref: string;
 }) {
   // Only on a votable field, and only with values the vote action accepts (it drops longer ones silently).
@@ -93,14 +98,14 @@ export function History({
                   <td className="whitespace-nowrap">{formatDate(row.changed_at)}</td>
                   <td>{fieldLabel(row.field_key)}</td>
                   <td className="whitespace-nowrap">{EVENT_LABELS[row.event]}</td>
-                  <td className="break-words">{describeChange(row)}</td>
+                  <td className="wrap-anywhere">{describeChange(row)}</td>
                   <td>{row.source_name ?? "–"}</td>
                   <td className="text-right whitespace-nowrap tabular-nums">
                     {row.event === "confidence_changed" || row.event === "replaced"
                       ? `${formatConfidence(row.previous_confidence)} → ${formatConfidence(row.confidence)}`
                       : formatConfidence(row.confidence)}
                   </td>
-                  <td className="whitespace-nowrap">
+                  <td>
                     {restorable(row.field_key, formerValue(row)) && (
                       <VoteButton companyId={company.id} field={row.field_key}
                         target={voteTarget(row.field_key, company) ?? ""} correction={asShown(row.field_key, formerValue(row) ?? "")}
@@ -124,8 +129,9 @@ export function History({
           <table className="w-full border-collapse text-sm">
             <caption className="caption-bottom px-3 py-2.5 text-left text-xs text-zinc-500">
               Jede Angabe, die eine Quelle zu diesem Unternehmen gemacht hat, auch nicht angezeigte. E-Mail,
-              Telefon und zurückgehaltene Werte erscheinen nie. „Übernehmen“ und „Wiederherstellen“ sind
-              Korrekturen wie jede andere: angezeigt wird ein Wert, sobald eine zweite Person zustimmt.
+              Telefon und zurückgehaltene Werte erscheinen nie. ✓/✗ bewerten eine Angabe wie überall;
+              „Übernehmen“ und „Wiederherstellen“ sind Korrekturen wie jede andere: angezeigt wird ein
+              Wert, sobald eine zweite Person zustimmt.
             </caption>
             <thead>
               <tr>
@@ -142,7 +148,7 @@ export function History({
               {claims.map((claim) => (
                 <tr key={claim.id}>
                   <td>{fieldLabel(claim.field_key)}</td>
-                  <td className="break-words">{claim.value ?? "–"}</td>
+                  <td className="wrap-anywhere">{claim.value ?? "–"}</td>
                   <td>
                     {claim.source_name ?? "–"}
                     {claim.method ? <span className="text-zinc-500"> · {claim.method}</span> : null}
@@ -150,13 +156,18 @@ export function History({
                   <td className="whitespace-nowrap">{formatDate(claim.read_at)}</td>
                   <td className="text-right whitespace-nowrap tabular-nums">{formatConfidence(claim.confidence)}</td>
                   <td>{claim.is_shown ? "ja" : "nein"}</td>
-                  <td className="whitespace-nowrap">
+                  <td>
                     {restorable(claim.field_key, claim.value) && (
                       <VoteButton companyId={company.id} field={claim.field_key}
                         target={voteTarget(claim.field_key, company) ?? ""} correction={asShown(claim.field_key, claim.value ?? "")} label="Übernehmen" />
                     )}{" "}
-                    {votable(claim.field_key, claim.value) && (
-                      <VoteButton companyId={company.id} field={claim.field_key} target={asShown(claim.field_key, claim.value)} label="Falsch" />
+                    {votable(claim.field_key, claim.value) && isField(claim.field_key) && (
+                      <FeedbackButtons
+                        companyId={company.id}
+                        field={claim.field_key}
+                        value={asShown(claim.field_key, claim.value)}
+                        tally={votes.get(tallyKey(claim.field_key, asShown(claim.field_key, claim.value)))}
+                      />
                     )}
                   </td>
                 </tr>
