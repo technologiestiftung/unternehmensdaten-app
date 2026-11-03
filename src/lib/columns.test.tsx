@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { company } from "@/test/hasura-stub";
-import { COLUMNS } from "./columns";
+import { COLUMNS, shortRegisterNumber } from "./columns";
 
 const fundings = COLUMNS.find((col) => col.key === "fundings")!;
 const text = (html: string) => html.replace(/<[^>]+>/g, "").replace(/ /g, " ");
@@ -19,5 +19,26 @@ describe("Förderungen column", () => {
 
   it("shows a dash without grants", () => {
     expect(fundings.render(company({ funding_count: 0 }))).toBe("–");
+  });
+});
+
+describe("Registernummer column", () => {
+  const column = COLUMNS.find((col) => col.key === "registration_number")!;
+
+  it("shows the short number, the court as a tooltip, and offers no vote", () => {
+    const full = "Amtsgericht Berlin (Charlottenburg) HRB 121291 B";
+    const html = renderToStaticMarkup(<>{column.render(company({ registration_number: full }))}</>);
+    expect(text(html)).toBe("HRB 121291 B");
+    expect(html).toContain(`title="${full}"`);
+    expect(column.votes).toBeUndefined();
+  });
+
+  it("keeps register types other than HRB and shows odd values whole", () => {
+    expect(shortRegisterNumber("Amtsgericht Berlin (Charlottenburg) VR 12345")).toBe("VR 12345");
+    expect(shortRegisterNumber("unbekannt")).toBe("unbekannt");
+  });
+
+  it("shows a dash without a number", () => {
+    expect(column.render(company({ registration_number: null }))).toBe("–");
   });
 });

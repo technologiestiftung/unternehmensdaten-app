@@ -62,6 +62,17 @@ describe("company page", () => {
     }
   });
 
+  it("shows the short register number before the legal form, with the court as tooltip and no votes", async () => {
+    const full = "Amtsgericht Berlin (Charlottenburg) HRB 121291 B";
+    stubHasura({ Company: { companies: [{ ...detail.companies[0], registration_number: full, legal_form: "GmbH" }] } });
+    const html = await render({});
+    expect(html).toContain(`<span title="${full}" class="whitespace-nowrap">HRB 121291 B</span>`);
+    expect(html.indexOf("Registernummer")).toBeGreaterThan(-1);
+    expect(html.indexOf("Registernummer")).toBeLessThan(html.indexOf("Rechtsform"));
+    expect(votes.some(([, field]) => field === "registration_number")).toBe(false);
+    expect(votes.some(([, field]) => field === "legal_form")).toBe(true);
+  });
+
   it("is not found for an id that is not a UUID, without asking Hasura", async () => {
     const requests = stubHasura({});
     await expect(render({}, "1 OR 1=1")).rejects.toThrow();

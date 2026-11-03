@@ -74,7 +74,7 @@ export function Filters({
       {params.cols && <input type="hidden" name="cols" value={params.cols} />}
       {params.review && <input type="hidden" name="review" value={params.review} />}
       <label className="flex flex-col gap-1.5 text-xs font-medium text-zinc-500">
-        Name enthält
+        Name oder Registernummer
         <input name="q" type="search" defaultValue={params.q ?? ""} />
       </label>
       {SELECTS.map(({ name, label }) => (

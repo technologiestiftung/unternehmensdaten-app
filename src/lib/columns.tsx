@@ -22,6 +22,8 @@ export type CompanyProfile = {
   deeptech_confidence: number | null;
   is_ai: boolean | null;
   register_status: string | null;
+  /** The newest register number with its court, e.g. "Amtsgericht Berlin (Charlottenburg) HRB 121291 B". */
+  registration_number: string | null;
   updated_at: string | null;
   /** The newest comment only; the detail page loads all of them. */
   comments?: { body: string }[];
@@ -31,9 +33,16 @@ export type CompanyProfile = {
 export const PROFILE_FIELDS = `
   id name employee_count revenue funding_count funding_total_eur wz_code established_at
   address legal_form technology_field website management business_purpose
-  deeptech_class deeptech_confidence is_ai register_status updated_at`;
+  deeptech_class deeptech_confidence is_ai register_status registration_number updated_at`;
 
 export const text = (value: string | null) => value ?? "–";
+
+/**
+ * "HRB 121291 B" from "Amtsgericht Berlin (Charlottenburg) HRB 121291 B": the court is left out while
+ * every company is in Berlin. Anything that does not look like a register number is shown whole.
+ */
+export const shortRegisterNumber = (value: string) =>
+  /\b(?:HRA|HRB|GnR|PR|VR|GsR)\s*\d+(?:\s+[A-Z]{1,2})?\b/.exec(value)?.[0] ?? value;
 
 export type Column = {
   key: string;
@@ -88,6 +97,17 @@ export const COLUMNS: Column[] = [
   { key: "wz_code", label: "WZ-Nummer", render: (c) => text(c.wz_code), votes: (c) => one(c.wz_code) },
   { key: "established_at", label: "Gründungsdatum", render: (c) => formatDate(c.established_at), votes: (c) => one(c.established_at) },
   { key: "address", label: "Adresse", render: (c) => text(c.address), long: true, votes: (c) => one(c.address) },
+  {
+    key: "registration_number",
+    label: "Registernummer",
+    // An identifier, not a claim: no vote. The full form with the court is the tooltip.
+    render: (c) =>
+      c.registration_number ? (
+        <span title={c.registration_number} className="whitespace-nowrap">{shortRegisterNumber(c.registration_number)}</span>
+      ) : (
+        "–"
+      ),
+  },
   { key: "legal_form", label: "Rechtsform", render: (c) => text(c.legal_form), votes: (c) => one(c.legal_form) },
   { key: "technology_field", label: "Technologiefeld", render: (c) => text(c.technology_field), votes: (c) => one(c.technology_field) },
   {

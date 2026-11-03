@@ -86,10 +86,24 @@ export function orderBy(params: ListParams): Record<string, string>[] {
   return key === "name" ? [primary, { id: "asc" }] : [primary, { name: "asc" }, { id: "asc" }];
 }
 
+/**
+ * A search like "HRB 121291" or "121291" as a regex on the register number, matching whole numbers
+ * only (121291 never finds 1212910). Built from the validated digits and prefix only, never from raw
+ * input. Undefined when the search does not look like a register number.
+ */
+export function registerNumberPattern(q: string): string | undefined {
+  const match = /^(?:(HRA|HRB|GnR|PR|VR|GsR)\s*)?(\d{1,7})(?:\s*[A-Z]{1,2})?$/i.exec(q.trim());
+  if (!match) return undefined;
+  const [, prefix, digits] = match;
+  return `${prefix ? `${prefix}\\s*` : "(^|\\D)"}${digits}(\\D|$)`;
+}
+
 export function where(params: ListParams): Record<string, unknown> {
   const and: Record<string, unknown>[] = [];
   const q = params.q?.trim();
-  if (q) and.push({ name: { _ilike: `%${q}%` } });
+  const register = q && registerNumberPattern(q);
+  if (register) and.push({ _or: [{ name: { _ilike: `%${q}%` } }, { registration_number: { _iregex: register } }] });
+  else if (q) and.push({ name: { _ilike: `%${q}%` } });
   for (const [param, column] of Object.entries(SELECT_FILTERS)) {
     const value = params[param as keyof typeof SELECT_FILTERS]?.trim();
     if (value) and.push({ [column]: { _eq: value } });

@@ -14,7 +14,7 @@ const company = {
   technology_field: null, website: "https://a.de",
   management: "Anna A; Bert B; Cora C; Dirk D; Emil E",
   business_purpose: null, deeptech_class: null, deeptech_confidence: null, is_ai: false,
-  register_status: "aktiv", updated_at: null,
+  register_status: "aktiv", registration_number: null, updated_at: null,
 } satisfies CompanyProfile;
 
 const prov = (over: Partial<Provenance>): Provenance => ({
