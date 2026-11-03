@@ -149,6 +149,10 @@ describe("search by register number", () => {
   it("leaves a name search alone", () => {
     expect(registerNumberPattern("Berghain")).toBeUndefined();
     expect(registerNumberPattern("Bau 2000 GmbH")).toBeUndefined();
+    for (const q of ["2000 AG", "42 AG", "3D"]) {
+      expect(registerNumberPattern(q)).toBeUndefined();
+      expect(where({ q })).toEqual({ _and: [{ name: { _ilike: `%${q}%` } }] });
+    }
     expect(where({ q: "Berghain" })).toEqual({ _and: [{ name: { _ilike: "%Berghain%" } }] });
   });
 
