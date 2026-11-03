@@ -135,4 +135,15 @@ describe("company list", () => {
     stubHasura(list(1));
     expect(headers(await render({ cols: "revenue" }))).toBe(2);
   });
+
+  it("shows the register number and finds a company by it", async () => {
+    const full = "Amtsgericht Berlin (Charlottenburg) HRB 121291 B";
+    const requests = stubHasura(list(1, [company({ registration_number: full })]));
+    const html = await render({ q: "HRB 121291" });
+    expect(requests[0].variables.where).toEqual({
+      _and: [{ _or: [{ name: { _ilike: "%HRB 121291%" } }, { registration_number: { _iregex: "HRB\\s*121291(\\D|$)" } }] }],
+    });
+    expect(html).toMatch(/<th scope="col"[^>]*>Registernummer<\/th>/);
+    expect(html).toContain(`<span title="${full}" class="whitespace-nowrap">HRB 121291 B</span>`);
+  });
 });

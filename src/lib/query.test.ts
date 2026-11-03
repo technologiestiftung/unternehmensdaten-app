@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { listParams, neighbours, orderBy, pageNumbers, sortOf, visibleColumns, where, withParams } from "./query";
+import { listParams, neighbours, orderBy, pageNumbers, registerNumberPattern, sortOf, visibleColumns, where, withParams } from "./query";
 
 describe("sortOf / orderBy", () => {
   it("defaults to name ascending", () => {
@@ -128,5 +128,33 @@ describe("withParams with a path", () => {
       "/companies/1?q=bau&sort=revenue&pos=3",
     );
     expect(withParams({}, {}, "/companies/1")).toBe("/companies/1");
+  });
+});
+
+describe("search by register number", () => {
+  // The patterns Hasura gets are Postgres regexes; JavaScript's regex reads \\D and \\s the same way.
+  const finds = (q: string, stored: string) => new RegExp(registerNumberPattern(q)!, "i").test(stored);
+  const stored = "Amtsgericht Berlin (Charlottenburg) HRB 121291 B";
+
+  it("finds a company by its number, with or without the register type", () => {
+    for (const q of ["121291", "HRB 121291", "hrb121291", "HRB 121291 B"]) expect(finds(q, stored)).toBe(true);
+  });
+
+  it("matches whole numbers only, and the right register type", () => {
+    expect(finds("12129", stored)).toBe(false);
+    expect(finds("21291", stored)).toBe(false);
+    expect(finds("HRA 121291", stored)).toBe(false);
+  });
+
+  it("leaves a name search alone", () => {
+    expect(registerNumberPattern("Berghain")).toBeUndefined();
+    expect(registerNumberPattern("Bau 2000 GmbH")).toBeUndefined();
+    expect(where({ q: "Berghain" })).toEqual({ _and: [{ name: { _ilike: "%Berghain%" } }] });
+  });
+
+  it("searches name or register number when the search looks like a number", () => {
+    expect(where({ q: "121291" })).toEqual({
+      _and: [{ _or: [{ name: { _ilike: "%121291%" } }, { registration_number: { _iregex: "(^|\\D)121291(\\D|$)" } }] }],
+    });
   });
 });
