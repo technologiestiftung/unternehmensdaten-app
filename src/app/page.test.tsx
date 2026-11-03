@@ -143,7 +143,18 @@ describe("company list", () => {
     expect(requests[0].variables.where).toEqual({
       _and: [{ _or: [{ name: { _ilike: "%HRB 121291%" } }, { registration_number: { _iregex: "HRB\\s*121291(\\D|$)" } }] }],
     });
-    expect(html).toMatch(/<th scope="col"[^>]*>Registernummer<\/th>/);
+    expect(html).toMatch(/<th scope="col"[^>]*><a[^>]*href="[^"]*sort=registration_number[^"]*">Registernummer /);
     expect(html).toContain(`<span title="${full}" class="whitespace-nowrap">HRB 121291 B</span>`);
+  });
+});
+
+describe("Registernummer column placement", () => {
+  it("comes right after the name, before every other column", async () => {
+    stubHasura(list(1));
+    const labels = [...(await render({})).matchAll(/<th scope="col"[^>]*>(.*?)<\/th>/g)].map(([, th]) =>
+      th.replace(/<[^>]+>/g, "").trim(),
+    );
+    expect(labels[0]).toMatch(/^Name/);
+    expect(labels[1]).toMatch(/^Registernummer/);
   });
 });

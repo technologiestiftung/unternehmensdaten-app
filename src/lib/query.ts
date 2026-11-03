@@ -8,6 +8,8 @@
 /** Columns the list can be sorted by: URL value → view column. */
 export const SORTABLE = {
   name: "name",
+  // shortcut: sorts as text, so HRB 121291 comes before HRB 92123; a numeric order needs a number column in the Data Hub.
+  registration_number: "registration_number",
   employee_count: "employee_count",
   revenue: "revenue",
   fundings: "funding_total_eur",
@@ -92,10 +94,10 @@ export function orderBy(params: ListParams): Record<string, string>[] {
  * input. Undefined when the search does not look like a register number.
  */
 export function registerNumberPattern(q: string): string | undefined {
-  const match = /^(?:(HRA|HRB|GnR|PR|VR|GsR)\s*)?(\d{1,7})(?:\s*[A-Z]{1,2})?$/i.exec(q.trim());
+  const match = /^(?:(HRA|HRB|GnR|PR|VR|GsR)\s*(\d{1,7})(?:\s*[A-Z]{1,2})?|(\d{1,7}))$/i.exec(q.trim());
   if (!match) return undefined;
-  const [, prefix, digits] = match;
-  return `${prefix ? `${prefix}\\s*` : "(^|\\D)"}${digits}(\\D|$)`;
+  const [, prefix, prefixedDigits, bareDigits] = match;
+  return prefix ? `${prefix}\\s*${prefixedDigits}(\\D|$)` : `(^|\\D)${bareDigits}(\\D|$)`;
 }
 
 export function where(params: ListParams): Record<string, unknown> {

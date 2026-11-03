@@ -149,6 +149,10 @@ describe("search by register number", () => {
   it("leaves a name search alone", () => {
     expect(registerNumberPattern("Berghain")).toBeUndefined();
     expect(registerNumberPattern("Bau 2000 GmbH")).toBeUndefined();
+    for (const q of ["2000 AG", "42 AG", "3D"]) {
+      expect(registerNumberPattern(q)).toBeUndefined();
+      expect(where({ q })).toEqual({ _and: [{ name: { _ilike: `%${q}%` } }] });
+    }
     expect(where({ q: "Berghain" })).toEqual({ _and: [{ name: { _ilike: "%Berghain%" } }] });
   });
 
@@ -156,5 +160,13 @@ describe("search by register number", () => {
     expect(where({ q: "121291" })).toEqual({
       _and: [{ _or: [{ name: { _ilike: "%121291%" } }, { registration_number: { _iregex: "(^|\\D)121291(\\D|$)" } }] }],
     });
+  });
+});
+
+describe("sorting by register number", () => {
+  it("is allowed, with the name as the tiebreak", () => {
+    expect(orderBy({ sort: "registration_number", dir: "asc" })).toEqual([
+      { registration_number: "asc_nulls_last" }, { name: "asc" }, { id: "asc" },
+    ]);
   });
 });
