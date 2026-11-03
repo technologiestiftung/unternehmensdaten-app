@@ -158,3 +158,11 @@ describe("search by register number", () => {
     });
   });
 });
+
+describe("sorting by register number", () => {
+  it("is allowed, with the name as the tiebreak", () => {
+    expect(orderBy({ sort: "registration_number", dir: "asc" })).toEqual([
+      { registration_number: "asc_nulls_last" }, { name: "asc" }, { id: "asc" },
+    ]);
+  });
+});

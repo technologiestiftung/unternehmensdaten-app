@@ -73,8 +73,20 @@ export const NAME_COLUMN: Column = {
   votes: (c) => one(c.name),
 };
 
-/** The target columns in the order the project defined them (docs/target-columns.md). */
+/** The register number first, then the target columns in the order the project defined them (docs/target-columns.md). */
 export const COLUMNS: Column[] = [
+  {
+    key: "registration_number",
+    label: "Registernummer",
+    // First, next to the name: it tells same-named companies apart. An identifier, not a claim: no vote.
+    // The full form with the court is the tooltip.
+    render: (c) =>
+      c.registration_number ? (
+        <span title={c.registration_number} className="whitespace-nowrap">{shortRegisterNumber(c.registration_number)}</span>
+      ) : (
+        "–"
+      ),
+  },
   { key: "employee_count", label: "Mitarbeiter", render: (c) => formatNumber(c.employee_count), numeric: true, votes: (c) => one(c.employee_count) },
   { key: "revenue", label: "Umsatz", render: (c) => formatEuro(c.revenue), numeric: true, votes: (c) => one(c.revenue) },
   {
@@ -97,17 +109,6 @@ export const COLUMNS: Column[] = [
   { key: "wz_code", label: "WZ-Nummer", render: (c) => text(c.wz_code), votes: (c) => one(c.wz_code) },
   { key: "established_at", label: "Gründungsdatum", render: (c) => formatDate(c.established_at), votes: (c) => one(c.established_at) },
   { key: "address", label: "Adresse", render: (c) => text(c.address), long: true, votes: (c) => one(c.address) },
-  {
-    key: "registration_number",
-    label: "Registernummer",
-    // An identifier, not a claim: no vote. The full form with the court is the tooltip.
-    render: (c) =>
-      c.registration_number ? (
-        <span title={c.registration_number} className="whitespace-nowrap">{shortRegisterNumber(c.registration_number)}</span>
-      ) : (
-        "–"
-      ),
-  },
   { key: "legal_form", label: "Rechtsform", render: (c) => text(c.legal_form), votes: (c) => one(c.legal_form) },
   { key: "technology_field", label: "Technologiefeld", render: (c) => text(c.technology_field), votes: (c) => one(c.technology_field) },
   {

@@ -8,6 +8,8 @@
 /** Columns the list can be sorted by: URL value → view column. */
 export const SORTABLE = {
   name: "name",
+  // shortcut: sorts as text, so HRB 121291 comes before HRB 92123; a numeric order needs a number column in the Data Hub.
+  registration_number: "registration_number",
   employee_count: "employee_count",
   revenue: "revenue",
   fundings: "funding_total_eur",
