@@ -147,3 +147,14 @@ describe("company list", () => {
     expect(html).toContain(`<span title="${full}" class="whitespace-nowrap">HRB 121291 B</span>`);
   });
 });
+
+describe("Registernummer column placement", () => {
+  it("comes right after the name, before every other column", async () => {
+    stubHasura(list(1));
+    const labels = [...(await render({})).matchAll(/<th scope="col"[^>]*>(.*?)<\/th>/g)].map(([, th]) =>
+      th.replace(/<[^>]+>/g, "").trim(),
+    );
+    expect(labels[0]).toMatch(/^Name/);
+    expect(labels[1]).toMatch(/^Registernummer/);
+  });
+});
