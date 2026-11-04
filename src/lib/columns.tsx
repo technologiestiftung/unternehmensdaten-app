@@ -14,6 +14,8 @@ export type CompanyProfile = {
   funding_total_eur: number | null;
   wz_code: string | null;
   established_at: string | null;
+  /** The year of established_at, else a founding year a source gave without a date (unternehmensdatenbank V6). */
+  established_year: number | null;
   address: string | null;
   legal_form: string | null;
   technology_field: string | null;
@@ -33,11 +35,17 @@ export type CompanyProfile = {
 
 /** The GraphQL selection for every column below. */
 export const PROFILE_FIELDS = `
-  id name employee_count revenue funding_count funding_total_eur wz_code established_at
+  id name employee_count revenue funding_count funding_total_eur wz_code established_at established_year
   address legal_form technology_field website management business_purpose
   deeptech_class deeptech_confidence is_ai register_status registration_number updated_at`;
 
 export const text = (value: string | null) => value ?? "–";
+
+/** "12.05.2010" when the date is known and in the shown year, else "2010", else "–". */
+export const foundingText = (c: Pick<CompanyProfile, "established_at" | "established_year">) =>
+  c.established_at && Number(c.established_at.slice(0, 4)) === c.established_year
+    ? formatDate(c.established_at)
+    : c.established_year == null ? "–" : String(c.established_year);
 
 /** A classification value linked to its entry on the classifications page, which says what it means. */
 const explained = (value: string | null, anchor: string | null | undefined) =>
@@ -113,7 +121,14 @@ export const COLUMNS: Column[] = [
     numeric: true,
   },
   { key: "wz_code", label: "WZ-Nummer", render: (c) => explained(c.wz_code, c.wz_code && wzAnchor(c.wz_code)), votes: (c) => one(c.wz_code) },
-  { key: "established_at", label: "Gründungsdatum", render: (c) => formatDate(c.established_at), votes: (c) => one(c.established_at) },
+  // One column for date and year: the date when it is known and agrees with the year, else the year alone.
+  {
+    key: "established_year",
+    label: "Gründung",
+    render: (c) => foundingText(c),
+    numeric: true,
+    votes: (c) => one(c.established_year),
+  },
   { key: "address", label: "Adresse", render: (c) => text(c.address), long: true, votes: (c) => one(c.address) },
   { key: "legal_form", label: "Rechtsform", render: (c) => text(c.legal_form), votes: (c) => one(c.legal_form) },
   {

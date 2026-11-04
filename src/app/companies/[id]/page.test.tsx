@@ -235,3 +235,30 @@ describe("restoring from the history", () => {
     expect(wrongs(page)).toEqual([]);
   });
 });
+
+describe("Gründung", () => {
+  const founded = (over: Record<string, unknown>, history: unknown[] = []) => ({
+    companies: [{ ...detail.companies[0], ...over, history }],
+  });
+
+  it("shows the year alone when a person corrected it away from the date, and votes on the year", async () => {
+    stubHasura({ Company: founded({ established_at: "2010-05-12", established_year: 2012 }) });
+    const html = await render({});
+    expect(html).toContain("Gründung");
+    expect(html).toContain("2012");
+    expect(html).not.toContain("12.05.2010");
+    expect(html).not.toContain("01.01.2012");
+    expect(votes).toContainEqual([ID, "established_year", "2012"]);
+  });
+
+  it("names older history rows on the exact date Gründungsdatum", async () => {
+    const change = {
+      id: 3, field_key: "established_at", event: "replaced", value: "2011-03-01", previous_value: "2010-05-12",
+      confidence: 0.9, previous_confidence: 1, source_name: "Testquelle", changed_at: "2026-10-30T09:00:00Z",
+    };
+    stubHasura({ Company: founded({ established_at: "2010-05-12", established_year: 2010 }, [change]) });
+    const html = await render({});
+    expect(html).toContain("12.05.2010");
+    expect(html).toContain("Gründungsdatum");
+  });
+});
