@@ -3,7 +3,7 @@
 import Form from "next/form";
 import Link from "next/link";
 import { type ChangeEvent, type FormEvent, type MouseEvent, useRef } from "react";
-import { type ListParams, withParams } from "@/lib/query";
+import { ALL_STATUSES, DEFAULT_STATUS, type ListParams, statusFilter, withParams } from "@/lib/query";
 import { Switch } from "./switch";
 
 export type FilterOptions = Record<
@@ -80,16 +80,24 @@ export function Filters({
       {SELECTS.map(({ name, label }) => (
         <label key={name} className="flex flex-col gap-1.5 text-xs font-medium text-zinc-500">
           {label}
-          <select
-            name={name}
-            defaultValue={params[name] ?? ""}
-          >
-            <option value="">alle</option>
-            {options[name].map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
+          <select name={name} defaultValue={params[name] ?? ""}>
+            {name === "register_status" ? (
+              <>
+                {/* Empty means the default, labelled with what the list then filters by (`statusFilter`). */}
+                <option value="">{statusFilter({ q: params.q }) === ALL_STATUSES ? "alle" : DEFAULT_STATUS}</option>
+                <option value={ALL_STATUSES}>alle</option>
+              </>
+            ) : (
+              <option value="">alle</option>
+            )}
+            {options[name]
+              // "active" is the default's label; listed again only for a link that names it explicitly.
+              .filter((value) => name !== "register_status" || value !== DEFAULT_STATUS || params.register_status === DEFAULT_STATUS)
+              .map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
           </select>
         </label>
       ))}

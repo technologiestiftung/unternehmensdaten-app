@@ -22,9 +22,37 @@ describe("sortOf / orderBy", () => {
 });
 
 describe("where", () => {
-  it("is empty without filters", () => {
-    expect(where({})).toEqual({});
-    expect(where({ q: "  ", legal_form: "" })).toEqual({});
+  it("shows active companies when no status is chosen", () => {
+    const active = { _and: [{ register_status: { _eq: "active" } }] };
+    expect(where({})).toEqual(active);
+    expect(where({ q: "  ", legal_form: "", register_status: "" })).toEqual(active);
+  });
+
+  it("shows every status for \"alle\", and the chosen one otherwise", () => {
+    expect(where({ register_status: "all" })).toEqual({});
+    expect(where({ register_status: "dissolved" })).toEqual({ _and: [{ register_status: { _eq: "dissolved" } }] });
+  });
+
+  it("finds a register number whatever its status, unless a status is chosen", () => {
+    expect(where({ q: "HRB 92123" })._and).toHaveLength(1);
+    expect(where({ q: "HRB 92123", register_status: "active" })._and).toHaveLength(2);
+  });
+
+  it("applies the default to the empty status the search form submits", () => {
+    expect(where(listParams({ q: "HRB 92123", register_status: "" }))._and).toEqual([
+      { _or: [{ name: { _ilike: "%HRB 92123%" } }, { registration_number: { _iregex: "HRB\\s*92123(\\D|$)" } }] },
+    ]);
+    expect(where(listParams({ q: "Berghain", register_status: "" }))).toEqual({
+      _and: [{ name: { _ilike: "%Berghain%" } }, { register_status: { _eq: "active" } }],
+    });
+  });
+
+  it("treats \"all\" as a value for other dropdowns", () => {
+    expect(where({ legal_form: "all", register_status: "all" })).toEqual({ _and: [{ legal_form: { _eq: "all" } }] });
+  });
+
+  it("keeps \"alle\" in page and sort links", () => {
+    expect(withParams({ register_status: "all" }, { page: "2" })).toBe("/?register_status=all&page=2");
   });
 
   it("combines every filter with AND", () => {
@@ -44,8 +72,8 @@ describe("where", () => {
   });
 
   it("drops a WZ prefix that is not a WZ code", () => {
-    expect(where({ wz: "62%' OR 1=1" })).toEqual({});
-    expect(where({ source: "x'] } }" })).toEqual({});
+    expect(where({ wz: "62%' OR 1=1", register_status: "all" })).toEqual({});
+    expect(where({ source: "x'] } }", register_status: "all" })).toEqual({});
   });
 });
 
@@ -60,7 +88,9 @@ describe("listParams", () => {
   it("takes the first value of a repeated key, so filters do not throw", () => {
     const params = listParams({ q: ["a", "b"], legal_form: ["GmbH", "AG"], page: "2", sort: undefined });
     expect(params).toEqual({ q: "a", legal_form: "GmbH", page: "2" });
-    expect(where(params)).toEqual({ _and: [{ name: { _ilike: "%a%" } }, { legal_form: { _eq: "GmbH" } }] });
+    expect(where(params)).toEqual({
+      _and: [{ name: { _ilike: "%a%" } }, { legal_form: { _eq: "GmbH" } }, { register_status: { _eq: "active" } }],
+    });
     expect(withParams(params, {})).toBe("/?q=a&legal_form=GmbH&page=2");
   });
 
@@ -151,13 +181,13 @@ describe("search by register number", () => {
     expect(registerNumberPattern("Bau 2000 GmbH")).toBeUndefined();
     for (const q of ["2000 AG", "42 AG", "3D"]) {
       expect(registerNumberPattern(q)).toBeUndefined();
-      expect(where({ q })).toEqual({ _and: [{ name: { _ilike: `%${q}%` } }] });
+      expect(where({ q, register_status: "all" })).toEqual({ _and: [{ name: { _ilike: `%${q}%` } }] });
     }
-    expect(where({ q: "Berghain" })).toEqual({ _and: [{ name: { _ilike: "%Berghain%" } }] });
+    expect(where({ q: "Berghain", register_status: "all" })).toEqual({ _and: [{ name: { _ilike: "%Berghain%" } }] });
   });
 
   it("searches name or register number when the search looks like a number", () => {
-    expect(where({ q: "121291" })).toEqual({
+    expect(where({ q: "121291", register_status: "all" })).toEqual({
       _and: [{ _or: [{ name: { _ilike: "%121291%" } }, { registration_number: { _iregex: "(^|\\D)121291(\\D|$)" } }] }],
     });
   });

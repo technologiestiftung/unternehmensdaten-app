@@ -48,7 +48,7 @@ describe("company list", () => {
     expect(requests).toHaveLength(1);
     expect(requests[0].authorization).toBe("Bearer token");
     expect(requests[0].variables).toMatchObject({
-      where: { _and: [{ legal_form: { _eq: "GmbH" } }] },
+      where: { _and: [{ legal_form: { _eq: "GmbH" } }, { register_status: { _eq: "active" } }] },
       order_by: [{ revenue: "desc_nulls_last" }, { name: "asc" }, { id: "asc" }],
       limit: 50,
       offset: 100,
