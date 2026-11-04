@@ -41,6 +41,30 @@ describe("sources page", () => {
     expect(page).toContain("erfolgreich");
   });
 
+  it("names register fields in German and leaves the website search's working values to the source's page", async () => {
+    stubHasura({
+      SourceOverview: {
+        source_overview: [
+          source({
+            source_key: "website_discovery",
+            fields: [
+              { field_name: "website", observations: 11909, companies: 11909, companies_shown: 11459 },
+              { field_name: "discovery_tier", observations: 143060, companies: 143059, companies_shown: 0 },
+              { field_name: "candidate_url", observations: 81839, companies: 81839, companies_shown: 0 },
+              { field_name: "postcode", observations: 5, companies: 5, companies_shown: 4 },
+            ],
+          }),
+        ],
+      },
+    });
+    const page = text(await render());
+    expect(page).toContain("Website: 11.909 / 11.459");
+    expect(page).toContain("PLZ: 5 / 4");
+    expect(page).not.toContain("Suchschritt");
+    expect(page).not.toContain("Website-Kandidat");
+    expect(page).toContain("Unternehmen mit Wert / davon angezeigt");
+  });
+
   it("links each source to the company list filtered by it", async () => {
     stubHasura({ SourceOverview: { source_overview: [source()] } });
     expect(await render()).toContain('href="/?source=impressum_contacts"');

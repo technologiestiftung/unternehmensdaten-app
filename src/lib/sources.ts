@@ -1,3 +1,5 @@
+import { fieldLabel as profileFieldLabel } from "@/lib/history";
+
 /** One row of `v_source_overview` (Hasura: `source_overview`) with its fields. Counts only, never a value. */
 export type SourceOverview = {
   source_key: string;
@@ -124,7 +126,13 @@ const FIELDS: Record<string, string> = {
   employee_count: "Mitarbeitende",
 };
 
-export const fieldLabel = (field: string) => FIELDS[field] ?? field;
+/** A field's German name: the sources' own words first, then the company page's (name, address ...). */
+export const fieldLabel = (field: string) => FIELDS[field] ?? profileFieldLabel(field);
+
+/** Working values of the website search that the app never shows; listed on a source's own page only. */
+const INTERNAL_FIELDS = new Set(["candidate_url", "directory_url", "discovery_tier", "search_query", "osm_id"]);
+
+export const isInternalField = (field: string) => INTERNAL_FIELDS.has(field);
 
 /** The stored run status in plain German. */
 const RUN_STATUS: Record<string, string> = {
