@@ -92,10 +92,15 @@ export function listParams(raw: Record<string, string | string[] | undefined>): 
   return params;
 }
 
+/** Column keys that were renamed, so saved `cols` cookies, bookmarks and sort links keep working. */
+const RENAMED_KEYS: Record<string, string> = { established_at: "established_year" };
+const currentKey = (key: string) => (Object.hasOwn(RENAMED_KEYS, key) ? RENAMED_KEYS[key] : key);
+
 export const isSortKey = (value: string | undefined): value is SortKey => !!value && Object.hasOwn(SORTABLE, value);
 
 export function sortOf(params: ListParams): { key: SortKey; dir: Direction } {
-  const key = isSortKey(params.sort) ? params.sort : "name";
+  const sort = params.sort && currentKey(params.sort);
+  const key = isSortKey(sort) ? sort : "name";
   return { key, dir: params.dir === "desc" ? "desc" : "asc" };
 }
 
@@ -181,7 +186,7 @@ export function neighbours(
 
 /** The columns `cols` asks for, in their usual order; all of them when it names none that exist. */
 export function visibleColumns<T extends { key: string }>(columns: T[], cols: string | undefined): T[] {
-  const wanted = new Set(cols?.split(","));
+  const wanted = new Set(cols?.split(",").map(currentKey));
   const shown = columns.filter((col) => wanted.has(col.key));
   return shown.length > 0 ? shown : columns;
 }

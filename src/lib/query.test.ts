@@ -112,6 +112,12 @@ describe("visibleColumns", () => {
     expect(visibleColumns(columns, "")).toEqual(columns);
     expect(visibleColumns(columns, "salary,__proto__")).toEqual(columns);
   });
+
+  it("reads the old key established_at, saved before the column became established_year", () => {
+    const withFounding = [{ key: "revenue" }, { key: "established_year" }];
+    expect(visibleColumns(withFounding, "established_at")).toEqual([{ key: "established_year" }]);
+    expect(sortOf({ sort: "established_at", dir: "desc" })).toEqual({ key: "established_year", dir: "desc" });
+  });
 });
 
 describe("pageNumbers", () => {
