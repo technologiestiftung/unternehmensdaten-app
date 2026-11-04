@@ -8,7 +8,8 @@ the chosen columns in a `cols` cookie for the next visit; a link with its own co
 on the company page or in the list with the pencil icon (**Werte bewerten**) above the table, and each value has an **ⓘ** that says
 where it came from: source, method, confidence, date and the page it was checked against. The page
 **Quellen** (`/sources`, linked in the header) shows per source its latest run, the companies it covers
-and, per field, how many values it stored and how many the app shows. Each source's name links to its own page
+and, per field, how many companies have a value from it and how many of those the app shows (the website search's
+working values, never shown, only on the source's own page). Each source's name links to its own page
 (`/sources/<key>`): its terms of use (**nicht geprüft** while nobody has checked them), how its records found their
 company, per field the values per confidence range (our estimate, not measured accuracy) and its last 20 runs, with
 interrupted ones marked. The page **Klassifikationen**
