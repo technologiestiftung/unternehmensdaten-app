@@ -38,6 +38,19 @@ describe("where", () => {
     expect(where({ q: "HRB 92123", register_status: "active" })._and).toHaveLength(2);
   });
 
+  it("applies the default to the empty status the search form submits", () => {
+    expect(where(listParams({ q: "HRB 92123", register_status: "" }))._and).toEqual([
+      { _or: [{ name: { _ilike: "%HRB 92123%" } }, { registration_number: { _iregex: "HRB\\s*92123(\\D|$)" } }] },
+    ]);
+    expect(where(listParams({ q: "Berghain", register_status: "" }))).toEqual({
+      _and: [{ name: { _ilike: "%Berghain%" } }, { register_status: { _eq: "active" } }],
+    });
+  });
+
+  it("treats \"all\" as a value for other dropdowns", () => {
+    expect(where({ legal_form: "all", register_status: "all" })).toEqual({ _and: [{ legal_form: { _eq: "all" } }] });
+  });
+
   it("keeps \"alle\" in page and sort links", () => {
     expect(withParams({ register_status: "all" }, { page: "2" })).toBe("/?register_status=all&page=2");
   });

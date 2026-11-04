@@ -54,7 +54,7 @@ export function Filters({
     for (const field of Array.from(event.currentTarget.closest("form")?.elements ?? [])) {
       if (isCheckbox(field)) field.checked = false;
       else if (field instanceof HTMLSelectElement || (field instanceof HTMLInputElement && field.type !== "hidden")) {
-        field.value = field.dataset.default ?? "";
+        field.value = "";
       }
     }
   };
@@ -80,18 +80,23 @@ export function Filters({
       {SELECTS.map(({ name, label }) => (
         <label key={name} className="flex flex-col gap-1.5 text-xs font-medium text-zinc-500">
           {label}
-          <select
-            name={name}
-            // The status shows what the list filters by (`statusFilter`); "alle" is an explicit value for it.
-            defaultValue={name === "register_status" ? statusFilter(params) : (params[name] ?? "")}
-            data-default={name === "register_status" ? DEFAULT_STATUS : undefined}
-          >
-            <option value={name === "register_status" ? ALL_STATUSES : ""}>alle</option>
-            {options[name].map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
+          <select name={name} defaultValue={params[name] ?? ""}>
+            {name === "register_status" ? (
+              <>
+                {/* Empty means the default, labelled with what the list then filters by (`statusFilter`). */}
+                <option value="">{statusFilter({ q: params.q }) === ALL_STATUSES ? "alle" : DEFAULT_STATUS}</option>
+                <option value={ALL_STATUSES}>alle</option>
+              </>
+            ) : (
+              <option value="">alle</option>
+            )}
+            {options[name]
+              .filter((value) => name !== "register_status" || value !== DEFAULT_STATUS)
+              .map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
           </select>
         </label>
       ))}

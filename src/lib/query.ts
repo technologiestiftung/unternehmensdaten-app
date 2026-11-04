@@ -126,7 +126,7 @@ export function where(params: ListParams): Record<string, unknown> {
   else if (q) and.push({ name: { _ilike: `%${q}%` } });
   for (const [param, column] of Object.entries(SELECT_FILTERS)) {
     const value = param === "register_status" ? statusFilter(params) : params[param as keyof typeof SELECT_FILTERS]?.trim();
-    if (value && value !== ALL_STATUSES) and.push({ [column]: { _eq: value } });
+    if (value && !(param === "register_status" && value === ALL_STATUSES)) and.push({ [column]: { _eq: value } });
   }
   const wz = params.wz?.trim();
   if (wz && /^[0-9.]{1,7}$/.test(wz)) and.push({ wz_code: { _like: `${wz}%` } });
