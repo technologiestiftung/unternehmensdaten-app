@@ -8,7 +8,10 @@ the chosen columns in a `cols` cookie for the next visit; a link with its own co
 on the company page or in the list with the pencil icon (**Werte bewerten**) above the table, and each value has an **ⓘ** that says
 where it came from: source, method, confidence, date and the page it was checked against. The page
 **Quellen** (`/sources`, linked in the header) shows per source its latest run, the companies it covers
-and, per field, how many values it stored and how many the app shows. The page **Klassifikationen**
+and, per field, how many values it stored and how many the app shows. Each source's name links to its own page
+(`/sources/<key>`): its terms of use (**nicht geprüft** while nobody has checked them), how its records found their
+company, per field the values per confidence range (our estimate, not measured accuracy) and its last 20 runs, with
+interrupted ones marked. The page **Klassifikationen**
 (`/classifications`, also in the header) lists the Technologiefelder with their keywords (and the removed ones,
 with the reason) and the WZ 2025 sections and divisions; a company's Technologiefeld and WZ number link there.
 The company page also has a
@@ -31,7 +34,7 @@ The data, the database schema and the Hasura permissions live in the other repo,
 browser ──login──▶ Keycloak
    │                  ▲ token
    ▼                  │
-this app (Next.js) ───┴──▶ Hasura ──reader role──▶ Postgres (v_company_profile, company_comments, extraction_feedback, v_field_provenance, v_company_history, v_company_claims, v_source_overview, technology_fields, technology_field_keywords, wz_divisions)
+this app (Next.js) ───┴──▶ Hasura ──reader role──▶ Postgres (v_company_profile, company_comments, extraction_feedback, v_field_provenance, v_company_history, v_company_claims, v_source_overview, v_source_runs, technology_fields, technology_field_keywords, wz_divisions)
 ```
 
 ## Run it locally
