@@ -26,6 +26,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/sources" className="text-sm text-zinc-600 hover:text-zinc-900">
                 Quellen
               </Link>
+              <Link href="/classifications" className="text-sm text-zinc-600 hover:text-zinc-900">
+                Klassifikationen
+              </Link>
               <Link href="/api/auth/signout" prefetch={false} className="text-sm text-zinc-600 hover:text-zinc-900">
                 Abmelden
               </Link>

@@ -42,3 +42,19 @@ describe("Registernummer column", () => {
     expect(column.render(company({ registration_number: null }))).toBe("–");
   });
 });
+
+describe("classification links", () => {
+  const column = (key: string) => COLUMNS.find((col) => col.key === key)!;
+
+  it("links a Technologiefeld and a WZ number to their entry", () => {
+    const c = company({ technology_field: "Artificial Intelligence", wz_code: "62.01" });
+    expect(renderToStaticMarkup(<>{column("technology_field").render(c)}</>)).toBe(
+      '<a href="/classifications#tf-artificial-intelligence">Artificial Intelligence</a>',
+    );
+    expect(renderToStaticMarkup(<>{column("wz_code").render(c)}</>)).toBe('<a href="/classifications#wz-62">62.01</a>');
+  });
+
+  it("shows a dash without a value", () => {
+    expect(column("technology_field").render(company({ technology_field: null }))).toBe("–");
+  });
+});
