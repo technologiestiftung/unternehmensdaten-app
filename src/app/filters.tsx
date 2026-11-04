@@ -91,7 +91,8 @@ export function Filters({
               <option value="">alle</option>
             )}
             {options[name]
-              .filter((value) => name !== "register_status" || value !== DEFAULT_STATUS)
+              // "active" is the default's label; listed again only for a link that names it explicitly.
+              .filter((value) => name !== "register_status" || value !== DEFAULT_STATUS || params.register_status === DEFAULT_STATUS)
               .map((value) => (
                 <option key={value} value={value}>
                   {value}
