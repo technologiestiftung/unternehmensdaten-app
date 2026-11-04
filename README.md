@@ -8,7 +8,10 @@ the chosen columns in a `cols` cookie for the next visit; a link with its own co
 on the company page or in the list with the pencil icon (**Werte bewerten**) above the table, and each value has an **ⓘ** that says
 where it came from: source, method, confidence, date and the page it was checked against. The page
 **Quellen** (`/sources`, linked in the header) shows per source its latest run, the companies it covers
-and, per field, how many values it stored and how many the app shows. The company page also has a
+and, per field, how many values it stored and how many the app shows. The page **Klassifikationen**
+(`/classifications`, also in the header) lists the Technologiefelder with their keywords (and the removed ones,
+with the reason) and the WZ 2025 sections and divisions; a company's Technologiefeld and WZ number link there.
+The company page also has a
 **Verlauf**: every change of a shown value (old → new, source, confidence) and, behind a toggle,
 every claim any source made, shown or not, with the usual ✓/✗. A former value can be restored and a claim marked
 wrong from there: both are ordinary votes, so a restored value is shown once a second person agrees. It runs on the
@@ -28,7 +31,7 @@ The data, the database schema and the Hasura permissions live in the other repo,
 browser ──login──▶ Keycloak
    │                  ▲ token
    ▼                  │
-this app (Next.js) ───┴──▶ Hasura ──reader role──▶ Postgres (v_company_profile, company_comments, extraction_feedback, v_field_provenance, v_company_history, v_company_claims, v_source_overview)
+this app (Next.js) ───┴──▶ Hasura ──reader role──▶ Postgres (v_company_profile, company_comments, extraction_feedback, v_field_provenance, v_company_history, v_company_claims, v_source_overview, technology_fields, technology_field_keywords, wz_divisions)
 ```
 
 ## Run it locally
