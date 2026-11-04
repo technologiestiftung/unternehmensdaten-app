@@ -3,7 +3,7 @@
 import Form from "next/form";
 import Link from "next/link";
 import { type ChangeEvent, type FormEvent, type MouseEvent, useRef } from "react";
-import { type ListParams, withParams } from "@/lib/query";
+import { ALL_STATUSES, DEFAULT_STATUS, type ListParams, statusFilter, withParams } from "@/lib/query";
 import { Switch } from "./switch";
 
 export type FilterOptions = Record<
@@ -54,7 +54,7 @@ export function Filters({
     for (const field of Array.from(event.currentTarget.closest("form")?.elements ?? [])) {
       if (isCheckbox(field)) field.checked = false;
       else if (field instanceof HTMLSelectElement || (field instanceof HTMLInputElement && field.type !== "hidden")) {
-        field.value = "";
+        field.value = field.dataset.default ?? "";
       }
     }
   };
@@ -82,9 +82,11 @@ export function Filters({
           {label}
           <select
             name={name}
-            defaultValue={params[name] ?? ""}
+            // The status shows what the list filters by (`statusFilter`); "alle" is an explicit value for it.
+            defaultValue={name === "register_status" ? statusFilter(params) : (params[name] ?? "")}
+            data-default={name === "register_status" ? DEFAULT_STATUS : undefined}
           >
-            <option value="">alle</option>
+            <option value={name === "register_status" ? ALL_STATUSES : ""}>alle</option>
             {options[name].map((value) => (
               <option key={value} value={value}>
                 {value}

@@ -32,6 +32,24 @@ export const PAGE_SIZE = 50;
 /** The cookie that remembers the chosen columns; `cols` in the URL wins over it. */
 export const COLS_COOKIE = "cols";
 
+/**
+ * The register status the list shows when the URL names none. Dissolved companies often share a name
+ * with an active one (a successor, a new registration), and side by side they look like duplicates.
+ */
+export const DEFAULT_STATUS = "active";
+/** The status dropdown's "alle": a value, not the empty string, because `withParams` drops empty ones. */
+export const ALL_STATUSES = "all";
+
+/**
+ * The status the list filters by, as the dropdown shows it: the chosen one, else "active", except for a
+ * search by register number, which names one entry and so finds it whatever its status.
+ */
+export function statusFilter(params: ListParams): string {
+  const chosen = params.register_status?.trim();
+  if (chosen) return chosen;
+  return params.q && registerNumberPattern(params.q) ? ALL_STATUSES : DEFAULT_STATUS;
+}
+
 /** Dropdown filters: URL param → view column, matched exactly. */
 export const SELECT_FILTERS = {
   legal_form: "legal_form",
@@ -107,8 +125,8 @@ export function where(params: ListParams): Record<string, unknown> {
   if (register) and.push({ _or: [{ name: { _ilike: `%${q}%` } }, { registration_number: { _iregex: register } }] });
   else if (q) and.push({ name: { _ilike: `%${q}%` } });
   for (const [param, column] of Object.entries(SELECT_FILTERS)) {
-    const value = params[param as keyof typeof SELECT_FILTERS]?.trim();
-    if (value) and.push({ [column]: { _eq: value } });
+    const value = param === "register_status" ? statusFilter(params) : params[param as keyof typeof SELECT_FILTERS]?.trim();
+    if (value && value !== ALL_STATUSES) and.push({ [column]: { _eq: value } });
   }
   const wz = params.wz?.trim();
   if (wz && /^[0-9.]{1,7}$/.test(wz)) and.push({ wz_code: { _like: `${wz}%` } });

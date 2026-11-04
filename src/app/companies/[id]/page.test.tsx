@@ -31,7 +31,7 @@ describe("company page", () => {
     const requests = stubHasura({ Company: detail, Neighbours: around("Erste GmbH", "Mitte AG", "Letzte KG") });
     const html = await render({ legal_form: "AG", sort: "revenue", pos: "60" });
     expect(requests.find((r) => r.operation === "Neighbours")?.variables).toMatchObject({
-      where: { _and: [{ legal_form: { _eq: "AG" } }] },
+      where: { _and: [{ legal_form: { _eq: "AG" } }, { register_status: { _eq: "active" } }] },
       order_by: [{ revenue: "asc_nulls_last" }, { name: "asc" }, { id: "asc" }],
       offset: 59,
     });

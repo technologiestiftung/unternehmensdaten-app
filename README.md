@@ -2,7 +2,7 @@
 
 The web app for the Berlin company database. It shows one record per company, with the target
 columns, the federal grants (Förderungen) and comments by colleagues. The company list can be
-sorted and filtered (the search finds a name or a register number such as `HRB 121291`), and the filtered view is in the URL, so it can be shared. The browser remembers
+sorted and filtered (the search finds a name or a register number such as `HRB 121291`), and the filtered view is in the URL, so it can be shared. The list starts with active companies only: a dissolved company often has the same name as an active one, and side by side they look like duplicates. "alle" under Registerstatus shows every status; a search by register number finds the entry whatever its status. The browser remembers
 the chosen columns in a `cols` cookie for the next visit; a link with its own columns wins. Users can mark
 **every shown value** (except the register number, an identifier) as correct or wrong and enter the right one (also a value that is missing),
 on the company page or in the list with the pencil icon (**Werte bewerten**) above the table, and each value has an **ⓘ** that says
