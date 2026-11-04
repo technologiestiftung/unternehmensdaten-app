@@ -25,6 +25,73 @@ export type SourceField = {
   companies_shown: number;
 };
 
+/** One source with everything its own page shows (`/sources/<key>`). Counts only, never a value. */
+export type SourceDetail = Omit<SourceOverview, "fields"> & {
+  base_url: string | null;
+  description: string | null;
+  terms: string | null;
+  terms_url: string | null;
+  schedule: string | null;
+  priority: number;
+  records_by_identifier: number;
+  records_by_name: number;
+  records_by_hand: number;
+  avg_match_confidence: number | null;
+  fields: SourceFieldDetail[];
+  recent_runs: SourceRun[];
+};
+
+/** A field with how confident its values are and how often another source's different value won. */
+export type SourceFieldDetail = SourceField & {
+  companies_beaten: number;
+  avg_confidence: number | null;
+  confidence_zero: number;
+  confidence_below_035: number;
+  confidence_035_060: number;
+  confidence_060_080: number;
+  confidence_080_up: number;
+  last_observed_at: string | null;
+};
+
+/** One run of `v_source_runs` (the last 20 per source). */
+export type SourceRun = {
+  started_at: string;
+  finished_at: string | null;
+  status: string;
+  records_seen: number;
+  records_created: number;
+  records_updated: number;
+  records_failed: number;
+  interrupted: boolean;
+};
+
+/** The confidence ranges `v_source_fields` counts, lowest first, with their German heading. */
+export const CONFIDENCE_RANGES = [
+  ["confidence_zero", "0"],
+  ["confidence_below_035", "unter 0,35"],
+  ["confidence_035_060", "0,35–0,6"],
+  ["confidence_060_080", "0,6–0,8"],
+  ["confidence_080_up", "ab 0,8"],
+] as const satisfies readonly (readonly [keyof SourceFieldDetail, string])[];
+
+export const SOURCE_DETAIL = `
+  query SourceDetail($key: String!) {
+    source_overview(where: { source_key: { _eq: $key } }) {
+      source_key name source_type base_url description terms terms_url schedule priority
+      records companies companies_created records_by_identifier records_by_name records_by_hand
+      avg_match_confidence last_run_started_at last_run_finished_at last_run_status last_run_seen
+      last_run_failed runs runs_interrupted counts_as_of
+      fields(order_by: { companies: desc }) {
+        field_name observations companies companies_shown companies_beaten avg_confidence
+        confidence_zero confidence_below_035 confidence_035_060 confidence_060_080 confidence_080_up
+        last_observed_at
+      }
+      recent_runs(order_by: { started_at: desc }) {
+        started_at finished_at status records_seen records_created records_updated records_failed interrupted
+      }
+    }
+  }`;
+
 export const SOURCE_OVERVIEW = `
   query SourceOverview {
     source_overview(order_by: { name: asc }) {

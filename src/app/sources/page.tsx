@@ -41,7 +41,7 @@ export default async function SourcesPage() {
             {sources.map((s) => (
               <tr key={s.source_key} className="align-top">
                 <th scope="row" className="font-medium">
-                  {s.name}
+                  <Link href={`/sources/${encodeURIComponent(s.source_key)}`}>{s.name}</Link>
                   <div className="mt-1 font-normal">
                     <Link href={`/?source=${encodeURIComponent(s.source_key)}`}>Unternehmen anzeigen</Link>
                   </div>

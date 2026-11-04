@@ -46,6 +46,11 @@ describe("sources page", () => {
     expect(await render()).toContain('href="/?source=impressum_contacts"');
   });
 
+  it("links each source's name to its own page", async () => {
+    stubHasura({ SourceOverview: { source_overview: [source()] } });
+    expect(await render()).toContain('<a href="/sources/impressum_contacts">Impressum contacts</a>');
+  });
+
   it("says how many companies a source created and how many runs were interrupted", async () => {
     stubHasura({
       SourceOverview: {
