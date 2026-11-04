@@ -14,7 +14,7 @@ export const SORTABLE = {
   revenue: "revenue",
   fundings: "funding_total_eur",
   wz_code: "wz_code",
-  established_at: "established_at",
+  established_year: "established_year",
   address: "address",
   legal_form: "legal_form",
   technology_field: "technology_field",

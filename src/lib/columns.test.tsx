@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { company } from "@/test/hasura-stub";
-import { COLUMNS, shortRegisterNumber } from "./columns";
+import { COLUMNS, foundingText, shortRegisterNumber } from "./columns";
 
 const fundings = COLUMNS.find((col) => col.key === "fundings")!;
 const text = (html: string) => html.replace(/<[^>]+>/g, "").replace(/ /g, " ");
@@ -56,5 +56,15 @@ describe("classification links", () => {
 
   it("shows a dash without a value", () => {
     expect(column("technology_field").render(company({ technology_field: null }))).toBe("–");
+  });
+});
+
+describe("Gründung", () => {
+  it("shows the date when it is known and in the shown year, else the year alone, never a made-up date", () => {
+    expect(foundingText({ established_at: "2010-05-12", established_year: 2010 })).toBe("12.05.2010");
+    expect(foundingText({ established_at: null, established_year: 2010 })).toBe("2010");
+    // A person corrected the year: the old date no longer agrees with it, so only the year is shown.
+    expect(foundingText({ established_at: "2010-05-12", established_year: 2012 })).toBe("2012");
+    expect(foundingText({ established_at: null, established_year: null })).toBe("–");
   });
 });

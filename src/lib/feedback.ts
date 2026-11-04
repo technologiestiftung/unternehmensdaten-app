@@ -1,6 +1,6 @@
 /**
  * Fields users can vote on: every field the app shows, under its column key. Must match the CHECK on
- * extraction_feedback.field_name (unternehmensdatenbank, V3).
+ * extraction_feedback.field_name (unternehmensdatenbank, V6).
  */
 export const FEEDBACK_FIELDS = [
   "name",
@@ -8,7 +8,7 @@ export const FEEDBACK_FIELDS = [
   "legal_form",
   "register_status",
   "wz_code",
-  "established_at",
+  "established_year",
   "employee_count",
   "revenue",
   "fundings",

@@ -41,6 +41,8 @@ const EXTRA_LABELS: Record<string, string> = {
   purpose_field: "Technologiefeld laut Unternehmenszweck",
   activity_keywords: "Tätigkeit (Stichworte)",
   register_announcement: "Registerbekanntmachung",
+  // Older votes and claims on the exact date, from before the one "Gründung" column.
+  established_at: "Gründungsdatum",
 };
 
 const column = (key: string) => [NAME_COLUMN, ...COLUMNS].find((c) => c.key === key);

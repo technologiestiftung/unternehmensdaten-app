@@ -59,7 +59,7 @@ describe("evidenceList", () => {
 describe("column votes", () => {
   const company = {
     id: "x", name: "Beispiel GmbH", employee_count: null, revenue: 1000, funding_count: 0,
-    funding_total_eur: null, wz_code: null, established_at: null, address: "Weg 1", legal_form: "GmbH",
+    funding_total_eur: null, wz_code: null, established_at: null, established_year: null, address: "Weg 1", legal_form: "GmbH",
     technology_field: null, website: "https://a.de", management: "Erika Muster; Max Beispiel",
     business_purpose: null, deeptech_class: null, deeptech_confidence: null, is_ai: false,
     register_status: "aktiv", registration_number: null, updated_at: null,
