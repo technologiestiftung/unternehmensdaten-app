@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireSession } from "@/lib/auth";
 import { formatDate, formatNumber } from "@/lib/format";
 import { hasura } from "@/lib/hasura";
-import { fieldLabel, runStatusLabel, SOURCE_OVERVIEW, type SourceOverview } from "@/lib/sources";
+import { fieldLabel, isInternalField, runStatusLabel, SOURCE_OVERVIEW, type SourceOverview } from "@/lib/sources";
 
 /**
  * What each source has collected: one row per source, its latest run, and per field how many
@@ -22,8 +22,10 @@ export default async function SourcesPage() {
     <>
       <h1 className="text-2xl font-semibold tracking-tight">Quellen</h1>
       <p className="mt-2 max-w-3xl text-sm text-zinc-600">
-        Was jede Quelle gesammelt hat. „Gespeichert“ zählt die Unternehmen, für die eine Quelle einen
-        Wert geliefert hat, „angezeigt“ die, bei denen die App genau diesen Wert zeigt. Zahlen vom{" "}
+        Was jede Quelle gesammelt hat. Je Feld: wie viele Unternehmen von dieser Quelle einen Wert haben,
+        und bei wie vielen davon die App genau diesen Wert zeigt (sonst gewinnt eine andere Quelle, oder
+        der Wert wird bewusst nicht gezeigt, wie E-Mail und Telefon). Arbeitswerte der Website-Suche stehen
+        nur auf der Seite der Quelle. Zahlen vom{" "}
         {formatDate(asOf)}; der letzte Lauf ist immer aktuell.
       </p>
       <div className="mt-6 overflow-x-auto border-y border-zinc-200">
@@ -34,7 +36,7 @@ export default async function SourcesPage() {
               <th scope="col">Quelle</th>
               <th scope="col">Letzter Lauf</th>
               <th scope="col" className="text-right">Unternehmen</th>
-              <th scope="col">Felder (gespeichert / angezeigt)</th>
+              <th scope="col">Felder: Unternehmen mit Wert / davon angezeigt</th>
             </tr>
           </thead>
           <tbody>
@@ -71,9 +73,9 @@ export default async function SourcesPage() {
                   )}
                 </td>
                 <td>
-                  {s.fields.length ? (
+                  {s.fields.some((f) => !isInternalField(f.field_name)) ? (
                     <ul>
-                      {s.fields.map((f) => (
+                      {s.fields.filter((f) => !isInternalField(f.field_name)).map((f) => (
                         <li key={f.field_name}>
                           {fieldLabel(f.field_name)}: {formatNumber(f.companies)} / {formatNumber(f.companies_shown)}
                         </li>

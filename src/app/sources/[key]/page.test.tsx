@@ -95,6 +95,17 @@ describe("source page", () => {
     expect(requests).toHaveLength(1);
   });
 
+  it("still lists the website search's working values that the overview leaves out", async () => {
+    const field = source().fields[0];
+    stubHasura({ SourceDetail: { source_overview: [source({
+      source_key: "website_discovery",
+      fields: [{ ...field, field_name: "discovery_tier" }, { ...field, field_name: "candidate_url" }],
+    })] } });
+    const page = text(await render("website_discovery"));
+    expect(page).toContain("Suchschritt");
+    expect(page).toContain("Website-Kandidat");
+  });
+
   it("has tables with captions and row headers", async () => {
     stubHasura({ SourceDetail: { source_overview: [source()] } });
     const html = await render();
