@@ -1,4 +1,6 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
+import { CLASSIFICATIONS_PATH, technologyFieldAnchor, wzAnchor } from "./classifications";
 import { MANAGEMENT_SEPARATOR, MISSING } from "./feedback";
 import { formatDate, formatEuro, formatNumber } from "./format";
 
@@ -36,6 +38,10 @@ export const PROFILE_FIELDS = `
   deeptech_class deeptech_confidence is_ai register_status registration_number updated_at`;
 
 export const text = (value: string | null) => value ?? "–";
+
+/** A classification value linked to its entry on the classifications page, which says what it means. */
+const explained = (value: string | null, anchor: string | null | undefined) =>
+  value && anchor ? <Link href={`${CLASSIFICATIONS_PATH}#${anchor}`}>{value}</Link> : text(value);
 
 /**
  * "HRB 121291 B" from "Amtsgericht Berlin (Charlottenburg) HRB 121291 B": the court is left out while
@@ -106,11 +112,16 @@ export const COLUMNS: Column[] = [
       ),
     numeric: true,
   },
-  { key: "wz_code", label: "WZ-Nummer", render: (c) => text(c.wz_code), votes: (c) => one(c.wz_code) },
+  { key: "wz_code", label: "WZ-Nummer", render: (c) => explained(c.wz_code, c.wz_code && wzAnchor(c.wz_code)), votes: (c) => one(c.wz_code) },
   { key: "established_at", label: "Gründungsdatum", render: (c) => formatDate(c.established_at), votes: (c) => one(c.established_at) },
   { key: "address", label: "Adresse", render: (c) => text(c.address), long: true, votes: (c) => one(c.address) },
   { key: "legal_form", label: "Rechtsform", render: (c) => text(c.legal_form), votes: (c) => one(c.legal_form) },
-  { key: "technology_field", label: "Technologiefeld", render: (c) => text(c.technology_field), votes: (c) => one(c.technology_field) },
+  {
+    key: "technology_field",
+    label: "Technologiefeld",
+    render: (c) => explained(c.technology_field, c.technology_field && technologyFieldAnchor(c.technology_field)),
+    votes: (c) => one(c.technology_field),
+  },
   {
     key: "website",
     label: "Website",
