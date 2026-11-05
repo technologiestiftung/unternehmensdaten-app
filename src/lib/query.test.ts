@@ -63,12 +63,16 @@ describe("where", () => {
         { name: { _ilike: "%bau%" } },
         { legal_form: { _eq: "GmbH" } },
         { register_status: { _eq: "aktiv" } },
-        { wz_code: { _like: "62%" } },
+        { wz_division_estimated: { _like: "62%" } },
         { website: { _is_null: false } },
         { funding_count: { _gt: 0 } },
         { source_keys: { _contains: ["website_discovery"] } },
       ],
     });
+  });
+
+  it("filters the estimated WZ division by its two digits", () => {
+    expect(where({ wz: "62.01", register_status: "all" })).toEqual({ _and: [{ wz_division_estimated: { _like: "62%" } }] });
   });
 
   it("drops a WZ prefix that is not a WZ code", () => {

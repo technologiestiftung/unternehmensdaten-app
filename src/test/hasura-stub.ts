@@ -4,7 +4,7 @@ import type { CompanyProfile } from "@/lib/columns";
 /** A company as Hasura returns it for the list and detail queries. */
 export const company = (over: Partial<CompanyProfile> = {}): CompanyProfile => ({
   id: "00000000-0000-4000-8000-000000000001", name: "Beispiel GmbH", employee_count: 12, revenue: 1000,
-  funding_count: 0, funding_total_eur: null, wz_code: "62.01", established_at: "2010-01-01", established_year: 2010,
+  funding_count: 0, funding_total_eur: null, wz_code: "62.01", wz_division_estimated: null, established_at: "2010-01-01", established_year: 2010,
   address: "Weg 1, Berlin", legal_form: "GmbH", technology_field: null,
   website: "https://a.de", management: "Anna A", business_purpose: null, deeptech_class: null,
   deeptech_confidence: null, is_ai: false, register_status: "aktiv", registration_number: null,

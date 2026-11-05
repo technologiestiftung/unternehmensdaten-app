@@ -113,7 +113,7 @@ export function Filters({
         </select>
       </label>
       <label className="flex flex-col gap-1.5 text-xs font-medium text-zinc-500">
-        WZ beginnt mit
+        WZ (geschätzt) beginnt mit
         <input
           name="wz"
           inputMode="decimal"

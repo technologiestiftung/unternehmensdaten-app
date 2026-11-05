@@ -158,3 +158,35 @@ describe("Registernummer column placement", () => {
     expect(labels[1]).toMatch(/^Registernummer/);
   });
 });
+
+describe("WZ (geschätzt) column", () => {
+  // Oracle: the intent — the estimate is its own sortable, votable column and "WZ beginnt mit" filters it, never wz_code.
+  const estimated = company({ wz_code: "62.01", wz_division_estimated: "56" });
+
+  it("filters and sorts by the estimate, never by the official wz_code", async () => {
+    const requests = stubHasura(list(1, [estimated]));
+    await render({ wz: "62.01", sort: "wz_division_estimated", dir: "asc" });
+    const { where, order_by } = requests[0].variables;
+    expect(where).toEqual({ _and: [{ register_status: { _eq: "active" } }, { wz_division_estimated: { _like: "62%" } }] });
+    expect(JSON.stringify(where)).not.toContain("wz_code");
+    expect((order_by as unknown[])[0]).toEqual({ wz_division_estimated: "asc_nulls_last" });
+  });
+
+  it("shows the estimate in its own sortable column, apart from the WZ-Nummer", async () => {
+    stubHasura(list(1, [estimated]));
+    const html = await render({});
+    expect(html).toMatch(/<th scope="col"[^>]*><a[^>]*href="[^"]*sort=wz_division_estimated[^"]*">WZ \(geschätzt\)/);
+    expect(html).toContain('<a href="/classifications#wz-56">56</a>');
+    expect(html).toContain('<a href="/classifications#wz-62">62.01</a>');
+  });
+
+  it("offers ✓/✗ on the estimate in review mode, counting earlier votes", async () => {
+    const withVotes = { ...estimated, feedback: [{ field_name: "wz_division_estimated", value: "56", verdict: "correct", author_id: "u2" }] };
+    stubHasura({ Companies: { ...list(1).Companies, companies: [{ ...withVotes, comments: [], provenance: [] }] } });
+    const html = await render({ review: "1" });
+    const yes = /<button[^>]*aria-label="stimmt: 56"[^>]*>.*?<\/button>/.exec(html)?.[0] ?? "";
+    expect(yes).not.toBe("");
+    expect(yes).toContain("<span>1</span>");
+    expect(html).toContain('aria-label="falsch: 56"');
+  });
+});

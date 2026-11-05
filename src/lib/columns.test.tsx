@@ -52,6 +52,8 @@ describe("classification links", () => {
       '<a href="/classifications#tf-artificial-intelligence">Artificial Intelligence</a>',
     );
     expect(renderToStaticMarkup(<>{column("wz_code").render(c)}</>)).toBe('<a href="/classifications#wz-62">62.01</a>');
+    const estimated = company({ wz_division_estimated: "56" });
+    expect(renderToStaticMarkup(<>{column("wz_division_estimated").render(estimated)}</>)).toBe('<a href="/classifications#wz-56">56</a>');
   });
 
   it("shows a dash without a value", () => {
