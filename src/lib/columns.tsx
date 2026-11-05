@@ -13,6 +13,8 @@ export type CompanyProfile = {
   funding_count: number;
   funding_total_eur: number | null;
   wz_code: string | null;
+  /** A WZ division ("62") our text model estimated from the website (unternehmensdatenbank #158); never the official wz_code. */
+  wz_division_estimated: string | null;
   established_at: string | null;
   /** The year of established_at, else a founding year a source gave without a date (unternehmensdatenbank V6). */
   established_year: number | null;
@@ -35,7 +37,7 @@ export type CompanyProfile = {
 
 /** The GraphQL selection for every column below. */
 export const PROFILE_FIELDS = `
-  id name employee_count revenue funding_count funding_total_eur wz_code established_at established_year
+  id name employee_count revenue funding_count funding_total_eur wz_code wz_division_estimated established_at established_year
   address legal_form technology_field website management business_purpose
   deeptech_class deeptech_confidence is_ai register_status registration_number updated_at`;
 
@@ -121,6 +123,13 @@ export const COLUMNS: Column[] = [
     numeric: true,
   },
   { key: "wz_code", label: "WZ-Nummer", render: (c) => explained(c.wz_code, c.wz_code && wzAnchor(c.wz_code)), votes: (c) => one(c.wz_code) },
+  // An estimate from the website text, never the official number: its own column, labelled as such.
+  {
+    key: "wz_division_estimated",
+    label: "WZ (geschätzt)",
+    render: (c) => explained(c.wz_division_estimated, c.wz_division_estimated && wzAnchor(c.wz_division_estimated)),
+    votes: (c) => one(c.wz_division_estimated),
+  },
   // One column for date and year: the date when it is known and agrees with the year, else the year alone.
   {
     key: "established_year",

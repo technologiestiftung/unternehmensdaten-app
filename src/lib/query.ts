@@ -14,6 +14,7 @@ export const SORTABLE = {
   revenue: "revenue",
   fundings: "funding_total_eur",
   wz_code: "wz_code",
+  wz_division_estimated: "wz_division_estimated",
   established_year: "established_year",
   address: "address",
   legal_form: "legal_form",
@@ -134,7 +135,9 @@ export function where(params: ListParams): Record<string, unknown> {
     if (value && !(param === "register_status" && value === ALL_STATUSES)) and.push({ [column]: { _eq: value } });
   }
   const wz = params.wz?.trim();
-  if (wz && /^[0-9.]{1,7}$/.test(wz)) and.push({ wz_code: { _like: `${wz}%` } });
+  // The estimate, not the official wz_code: no source gives that yet (unternehmensdatenbank #158).
+  // It holds a division only, so "62.01" filters by "62".
+  if (wz && /^[0-9.]{1,7}$/.test(wz)) and.push({ wz_division_estimated: { _like: `${wz.slice(0, 2)}%` } });
   if (params.website === "1") and.push({ website: { _is_null: false } });
   if (params.fundings === "1") and.push({ funding_count: { _gt: 0 } });
   const source = params.source?.trim();

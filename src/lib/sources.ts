@@ -113,6 +113,7 @@ const FIELDS: Record<string, string> = {
   search_query: "Suchanfrage",
   osm_id: "OpenStreetMap-Objekt",
   technology_field: "Technologiefeld",
+  wz_division_estimated: "WZ (geschätzt)",
   technology_field_withheld: "Technologiefeld (zurückgehalten)",
   purpose_field: "Feld laut Unternehmensgegenstand",
   purpose_field_withheld: "Feld laut Unternehmensgegenstand (zurückgehalten)",

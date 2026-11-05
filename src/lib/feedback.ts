@@ -8,6 +8,7 @@ export const FEEDBACK_FIELDS = [
   "legal_form",
   "register_status",
   "wz_code",
+  "wz_division_estimated",
   "established_year",
   "employee_count",
   "revenue",

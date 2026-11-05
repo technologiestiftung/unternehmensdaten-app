@@ -14,7 +14,7 @@ working values, never shown, only on the source's own page). Each source's name 
 company, per field the values per confidence range (our estimate, not measured accuracy) and its last 20 runs, with
 interrupted ones marked. The page **Klassifikationen**
 (`/classifications`, also in the header) lists the Technologiefelder with their keywords (and the removed ones,
-with the reason) and the WZ 2025 sections and divisions; a company's Technologiefeld and WZ number link there.
+with the reason) and the WZ 2025 sections and divisions; a company's Technologiefeld, WZ number and estimated WZ division ("WZ (geschätzt)", from the website text, never the official number) link there.
 The company page also has a
 **Verlauf**: every change of a shown value (old → new, source, confidence) and, behind a toggle,
 every claim any source made, shown or not, with the usual ✓/✗. A former value can be restored and a claim marked

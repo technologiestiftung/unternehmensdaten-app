@@ -28,6 +28,7 @@ const METHODS: Record<string, string> = {
 
 export function methodLabel(row: Provenance): string | null {
   if (!row.method) return null;
+  if (row.source_key === "wz_textcat") return "Textmodell, trainiert auf KI-Vorschläge (Claude) und Bewertungen";
   if (row.source_key === "spacy_ner") return `aus dem Impressum gelesen (spaCy, ${row.method})`;
   return METHODS[row.method] ?? row.method;
 }
