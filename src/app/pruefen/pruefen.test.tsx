@@ -49,6 +49,11 @@ describe("rounds page", () => {
     stubHasura(OFF);
     await expect(ReviewRoundsPage()).rejects.toThrow(/NEXT_HTTP_ERROR_FALLBACK;404|NOT_FOUND/);
   });
+
+  it("counts a failed read of the switch as off", async () => {
+    stubHasura({}); // ReviewSettings answers with a GraphQL error
+    await expect(ReviewRoundsPage()).rejects.toThrow(/NEXT_HTTP_ERROR_FALLBACK;404|NOT_FOUND/);
+  });
 });
 
 describe("round page", () => {
