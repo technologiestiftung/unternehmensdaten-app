@@ -24,6 +24,11 @@ describe("answerAfter", () => {
     expect(answerAfter({ verdict: "correct", reason: null, correction: null }, "correct")).toBeNull();
   });
 
+  it("keeps the answer when it is given explicitly again", () => {
+    const correct = { verdict: "correct" as const, reason: null, correction: null };
+    expect(answerAfter(correct, "correct", null, null)).toEqual(correct);
+  });
+
   it("keeps reason and correction when falsch is clicked, replaces them when given", () => {
     expect(answerAfter({ verdict: "unsure", reason: null, correction: null }, "wrong")).toEqual({
       verdict: "wrong", reason: null, correction: null,

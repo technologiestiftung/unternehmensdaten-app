@@ -112,7 +112,7 @@ export function TaskCard({
               type="button"
               className="ml-2 border border-zinc-300 bg-white px-2 py-0.5 text-xs text-zinc-800 hover:bg-zinc-100"
               // "NONE": the AI found no field, so taking it means "gibt es nicht".
-              onClick={() => (task.suggestion === NONE ? onAnswer("correct") : onAnswer("wrong", null, task.suggestion))}
+              onClick={() => (task.suggestion === NONE ? onAnswer("correct", null, null) : onAnswer("wrong", null, task.suggestion))}
             >
               übernehmen
             </button>
