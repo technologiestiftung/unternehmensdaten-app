@@ -18,7 +18,14 @@ with the reason) and the WZ 2025 sections and divisions; a company's Technologie
 The company page also has a
 **Verlauf**: every change of a shown value (old → new, source, confidence) and, behind a toggle,
 every claim any source made, shown or not, with the usual ✓/✗. A former value can be restored and a claim marked
-wrong from there: both are ordinary votes, so a restored value is shown once a second person agrees. It runs on the
+wrong from there: both are ordinary votes, so a restored value is shown once a second person agrees. The page
+**Prüfen** (`/pruefen`, in the header only while the review queue is on) is a research-phase tool: a person judges a
+round of about 200 values of one source and field (richtig / falsch / ?, a reason, the right answer; keys 1/2/3, j/k,
+o), or fills gaps, with every option of the field in a side panel. Each answer is saved at once and becomes that
+person's vote. `/pruefen/<round>/ergebnis` shows the counts: precision, wrong answers by reason, by confidence and
+by evidence, and the round before. The switch is `review_settings.enabled` in the database, read on every request,
+so no deploy is needed; rounds are drawn in the other repo (unternehmensdatenbank #153). To remove it later, delete
+`src/app/pruefen/`, `src/lib/review.ts` and the header entry in `src/app/layout.tsx`. It runs on the
 **Berlin Data Hub** (data-hub.berlin).
 
 The app has **no database access of its own**. It is a Next.js server that:
@@ -35,7 +42,7 @@ The data, the database schema and the Hasura permissions live in the other repo,
 browser ──login──▶ Keycloak
    │                  ▲ token
    ▼                  │
-this app (Next.js) ───┴──▶ Hasura ──reader role──▶ Postgres (v_company_profile, company_comments, extraction_feedback, v_field_provenance, v_company_history, v_company_claims, v_source_overview, v_source_runs, technology_fields, technology_field_keywords, wz_divisions)
+this app (Next.js) ───┴──▶ Hasura ──reader role──▶ Postgres (v_company_profile, company_comments, extraction_feedback, v_field_provenance, v_company_history, v_company_claims, v_source_overview, v_source_runs, technology_fields, technology_field_keywords, wz_divisions, review_settings, review_rounds, review_tasks, review_verdicts)
 ```
 
 ## Run it locally
