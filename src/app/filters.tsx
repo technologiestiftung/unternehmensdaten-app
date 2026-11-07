@@ -11,13 +11,14 @@ import {
 import {
   ALL_STATUSES,
   DEFAULT_STATUS,
+  FUNDING_RANGES,
   type ListParams,
+  NO_WEBSITE,
   statusFilter,
   withParams,
 } from "@/lib/query";
 import { formatNumber } from "@/lib/format";
 import { MultiSelect, type MultiSelectOption } from "./multi-select";
-import { Switch } from "./switch";
 
 export type FilterOptions = Record<
   "legal_form" | "register_status" | "technology_field",
@@ -135,7 +136,7 @@ export function Filters({
           />
         </label>
         <span id="search-hint" className="text-xs text-zinc-500">
-          Name, Registernummer, Website oder Adresse, auch mit Tippfehlern.
+          Name, Registernummer, Website oder Adresse.
         </span>
       </div>
       {multiSelect("legal_form", "Rechtsform", asOptions(options.legal_form))}
@@ -185,52 +186,24 @@ export function Filters({
           defaultValue={params.wz ?? ""}
         />
       </label>
-      {multiSelect(
-        "tld",
-        "Website-Endung",
-        tlds.map(({ tld, company_count }) => ({
+      {multiSelect("tld", "Website-Endung", [
+        ...tlds.map(({ tld, company_count }) => ({
           value: tld,
           label: `.${tld} (${formatNumber(company_count)})`,
         })),
-      )}
-      <fieldset className="flex flex-col gap-1.5">
-        <legend className="mb-1.5 text-xs font-medium text-zinc-500">
-          Förderungen gesamt (€)
-        </legend>
-        <div className="flex items-center gap-2">
-          <label className="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-zinc-500">
-            von
-            <input
-              name="fund_min"
-              inputMode="numeric"
-              aria-label="Förderungen gesamt von (€)"
-              defaultValue={params.fund_min ?? ""}
-              className="w-full min-w-0"
-            />
-          </label>
-          <label className="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-zinc-500">
-            bis
-            <input
-              name="fund_max"
-              inputMode="numeric"
-              aria-label="Förderungen gesamt bis (€)"
-              defaultValue={params.fund_max ?? ""}
-              className="w-full min-w-0"
-            />
-          </label>
-        </div>
-      </fieldset>
-      <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1.5 text-xs font-medium text-zinc-500">
-          Nur Unternehmen
-        </legend>
-        <Switch name="website" isChecked={params.website === "1"}>
-          mit Website
-        </Switch>
-        <Switch name="fundings" isChecked={params.fundings === "1"}>
-          mit Förderungen
-        </Switch>
-      </fieldset>
+        { value: NO_WEBSITE, label: "keine Website" },
+      ])}
+      <label className="flex flex-col gap-1.5 text-xs font-medium text-zinc-500">
+        Förderungen gesamt
+        <select name="fund" defaultValue={params.fund ?? ""}>
+          <option value="">alle</option>
+          {FUNDING_RANGES.map(({ value, label }) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </label>
       <div className="flex items-end justify-end">
         {/* Hidden, but lets Enter in a text field submit when JavaScript is off. */}
         <button type="submit" hidden>

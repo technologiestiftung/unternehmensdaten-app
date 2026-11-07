@@ -58,6 +58,44 @@ export const MULTI_FILTERS = {
   legal_form: "legal_form",
   technology_field: "technology_field",
 } as const;
+/** The Website-Endung option for companies without a website. */
+export const NO_WEBSITE = "none";
+
+/** The Förderungen dropdown: URL value → label and condition on the company's grants. */
+export const FUNDING_RANGES = [
+  { value: "none", label: "keine", where: { funding_count: { _eq: 0 } } },
+  {
+    value: "any",
+    label: "mit Förderungen",
+    where: { funding_count: { _gt: 0 } },
+  },
+  {
+    value: "lt10k",
+    label: "unter 10.000 €",
+    where: { funding_total_eur: { _gt: 0, _lt: 10_000 } },
+  },
+  {
+    value: "10k",
+    label: "10.000 – 100.000 €",
+    where: { funding_total_eur: { _gte: 10_000, _lt: 100_000 } },
+  },
+  {
+    value: "100k",
+    label: "100.000 € – 1 Mio. €",
+    where: { funding_total_eur: { _gte: 100_000, _lt: 1_000_000 } },
+  },
+  {
+    value: "1m",
+    label: "1 – 10 Mio. €",
+    where: { funding_total_eur: { _gte: 1_000_000, _lt: 10_000_000 } },
+  },
+  {
+    value: "10m",
+    label: "ab 10 Mio. €",
+    where: { funding_total_eur: { _gte: 10_000_000 } },
+  },
+] as const;
+
 /** Every param that can repeat in the URL; `listParams` keeps all their values. */
 const MULTI_PARAMS = [
   "legal_form",
@@ -75,14 +113,11 @@ export type ListParams = {
   sort?: string;
   dir?: string;
   wz?: string;
-  website?: string;
-  fundings?: string;
   /** "1" shows the ✓/✗ buttons in the table. */
   review?: string;
   register_status?: string;
-  /** Lowest / highest total of grants in €. */
-  fund_min?: string;
-  fund_max?: string;
+  /** A `FUNDING_RANGES` value: the company's total of grants. */
+  fund?: string;
   /** On a company page: its 0-based position in the list it was opened from, for prev/next. */
   pos?: string;
   /** On a company page: the page of its grants table. */
@@ -220,8 +255,6 @@ export function where(params: ListParams): Record<string, unknown> {
   // It holds a division only, so "62.01" filters by "62".
   if (wz && /^[0-9.]{1,7}$/.test(wz))
     and.push({ wz_division_estimated: { _like: `${wz.slice(0, 2)}%` } });
-  if (params.website === "1") and.push({ website: { _is_null: false } });
-  if (params.fundings === "1") and.push({ funding_count: { _gt: 0 } });
   const sources = params.source?.filter((key) => /^[a-z0-9_]{1,64}$/.test(key));
   if (sources?.length)
     and.push({
@@ -230,22 +263,24 @@ export function where(params: ListParams): Record<string, unknown> {
   // The host's last label, the same pattern as the Data Hub's `v_website_tlds`; only validated labels reach it.
   const tlds = params.tld
     ?.map((t) => t.toLowerCase())
-    .filter((t) => /^[a-z]{2,24}$/.test(t));
-  if (tlds?.length)
-    and.push({
-      website: {
-        _iregex: `^([a-z]+://)?[^/:?#]*\\.(${tlds.join("|")})([:/?#]|$)`,
-      },
-    });
-  // Accepts how people write amounts: "1.000", "50 000", "2000 €".
-  const euro = (value: string | undefined) => {
-    const amount = value?.replace(/[\s€]/g, "");
-    const digits = amount && /^\d{1,3}(\.\d{3})+$/.test(amount) ? amount.replace(/\./g, "") : amount;
-    return digits && /^\d{1,12}$/.test(digits) ? Number(digits) : undefined;
-  };
-  const [fundMin, fundMax] = [euro(params.fund_min), euro(params.fund_max)];
-  if (fundMin !== undefined) and.push({ funding_total_eur: { _gte: fundMin } });
-  if (fundMax !== undefined) and.push({ funding_total_eur: { _lte: fundMax } });
+    .filter((t) => t !== NO_WEBSITE && /^[a-z]{2,24}$/.test(t));
+  const websites = [
+    ...(params.tld?.includes(NO_WEBSITE)
+      ? [{ website: { _is_null: true } }]
+      : []),
+    ...(tlds?.length
+      ? [
+          {
+            website: {
+              _iregex: `^([a-z]+://)?[^/:?#]*\\.(${tlds.join("|")})([:/?#]|$)`,
+            },
+          },
+        ]
+      : []),
+  ];
+  if (websites.length) and.push({ _or: websites });
+  const funding = FUNDING_RANGES.find((range) => range.value === params.fund);
+  if (funding) and.push(funding.where);
   return and.length ? { _and: and } : {};
 }
 

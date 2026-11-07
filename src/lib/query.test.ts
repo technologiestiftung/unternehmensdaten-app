@@ -77,12 +77,9 @@ describe("where", () => {
         technology_field: ["Software, IT"],
         register_status: "aktiv",
         wz: "62",
-        website: "1",
-        fundings: "1",
         source: ["website_discovery"],
         tld: ["de"],
-        fund_min: "1000",
-        fund_max: "50000",
+        fund: "10k",
       }),
     ).toEqual({
       _and: [
@@ -90,12 +87,9 @@ describe("where", () => {
         { legal_form: { _in: ["GmbH", "AG"] } },
         { technology_field: { _in: ["Software, IT"] } },
         { wz_division_estimated: { _like: "62%" } },
-        { website: { _is_null: false } },
-        { funding_count: { _gt: 0 } },
         { _or: [{ source_keys: { _contains: ["website_discovery"] } }] },
-        { website: { _iregex: "^([a-z]+://)?[^/:?#]*\\.(de)([:/?#]|$)" } },
-        { funding_total_eur: { _gte: 1000 } },
-        { funding_total_eur: { _lte: 50000 } },
+        { _or: [{ website: { _iregex: "^([a-z]+://)?[^/:?#]*\\.(de)([:/?#]|$)" } }] },
+        { funding_total_eur: { _gte: 10_000, _lt: 100_000 } },
       ],
     });
   });
@@ -108,24 +102,25 @@ describe("where", () => {
 
   it("matches a website by the last label of its host only", () => {
     const pattern = new RegExp(
-      (where({ tld: ["de", "berlin"], register_status: "all" })._and as { website: { _iregex: string } }[])[0].website._iregex,
+      (where({ tld: ["de", "berlin"], register_status: "all" })._and as { _or: { website: { _iregex: string } }[] }[])[0]._or[0].website._iregex,
       "i",
     );
     expect(["https://www.example.de", "example.berlin/impressum", "http://a.de:8080"].every((w) => pattern.test(w))).toBe(true);
     expect(["https://de.example.com", "https://example.com/de", "https://example.dev"].some((w) => pattern.test(w))).toBe(false);
   });
 
-  it("allows only euro amounts as funding bounds", () => {
-    expect(where({ fund_min: "0", register_status: "all" })).toEqual({ _and: [{ funding_total_eur: { _gte: 0 } }] });
-    expect(where({ fund_min: "1e9", fund_max: "-5", register_status: "all" })).toEqual({});
+  it("finds companies without a website, alone or with chosen endings", () => {
+    expect(where({ tld: ["none"], register_status: "all" })).toEqual({ _and: [{ _or: [{ website: { _is_null: true } }] }] });
+    expect(where({ tld: ["none", "de"], register_status: "all" })._and).toEqual([
+      { _or: [{ website: { _is_null: true } }, { website: { _iregex: "^([a-z]+://)?[^/:?#]*\\.(de)([:/?#]|$)" } }] },
+    ]);
   });
 
-  it("reads funding bounds written with thousands dots, spaces or €", () => {
-    expect(where({ fund_min: "1.000 €", fund_max: "50 000", register_status: "all" })).toEqual({
-      _and: [{ funding_total_eur: { _gte: 1000 } }, { funding_total_eur: { _lte: 50000 } }],
-    });
-    expect(where({ fund_min: "1.000,50", register_status: "all" })).toEqual({});
-    expect(where({ fund_min: "1000.50", fund_max: "1.5", register_status: "all" })).toEqual({});
+  it("filters grants by a range from the dropdown, ignoring unknown values", () => {
+    expect(where({ fund: "none", register_status: "all" })).toEqual({ _and: [{ funding_count: { _eq: 0 } }] });
+    expect(where({ fund: "any", register_status: "all" })).toEqual({ _and: [{ funding_count: { _gt: 0 } }] });
+    expect(where({ fund: "10m", register_status: "all" })).toEqual({ _and: [{ funding_total_eur: { _gte: 10_000_000 } }] });
+    expect(where({ fund: "1000", register_status: "all" })).toEqual({});
   });
 
   it("filters the estimated WZ division by its two digits", () => {
