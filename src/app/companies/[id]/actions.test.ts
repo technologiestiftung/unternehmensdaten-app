@@ -29,7 +29,7 @@ describe("setVote", () => {
   it("takes the user's vote back when the active verdict is clicked again", async () => {
     const requests = stubHasura({ RemoveVote: { delete_feedback: { affected_rows: 1 } } });
     await setVote(ID, "legal_form", "GmbH", form({ verdict: "remove" }));
-    expect(requests).toEqual([
+    expect(requests).toMatchObject([
       {
         operation: "RemoveVote",
         variables: {

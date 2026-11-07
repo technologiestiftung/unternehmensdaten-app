@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { listParams, neighbours, orderBy, pageNumbers, registerNumberPattern, sortOf, visibleColumns, where, withParams } from "./query";
+import {
+  listField,
+  listParams,
+  neighbours,
+  orderBy,
+  pageNumbers,
+  registerNumberPattern,
+  searchTerm,
+  searchVariable,
+  sortOf,
+  visibleColumns,
+  where,
+  withParams,
+} from "./query";
 
 describe("sortOf / orderBy", () => {
   it("defaults to name ascending", () => {
@@ -25,7 +38,7 @@ describe("where", () => {
   it("shows active companies when no status is chosen", () => {
     const active = { _and: [{ register_status: { _eq: "active" } }] };
     expect(where({})).toEqual(active);
-    expect(where({ q: "  ", legal_form: "", register_status: "" })).toEqual(active);
+    expect(where(listParams({ q: "  ", legal_form: "", register_status: "" }))).toEqual(active);
   });
 
   it("shows every status for \"alle\", and the chosen one otherwise", () => {
@@ -42,13 +55,14 @@ describe("where", () => {
     expect(where(listParams({ q: "HRB 92123", register_status: "" }))._and).toEqual([
       { _or: [{ name: { _ilike: "%HRB 92123%" } }, { registration_number: { _iregex: "HRB\\s*92123(\\D|$)" } }] },
     ]);
+    // A name search is matched by `search_companies`, not by `where`.
     expect(where(listParams({ q: "Berghain", register_status: "" }))).toEqual({
-      _and: [{ name: { _ilike: "%Berghain%" } }, { register_status: { _eq: "active" } }],
+      _and: [{ register_status: { _eq: "active" } }],
     });
   });
 
   it("treats \"all\" as a value for other dropdowns", () => {
-    expect(where({ legal_form: "all", register_status: "all" })).toEqual({ _and: [{ legal_form: { _eq: "all" } }] });
+    expect(where({ legal_form: ["all"], register_status: "all" })).toEqual({ _and: [{ legal_form: { _in: ["all"] } }] });
   });
 
   it("keeps \"alle\" in page and sort links", () => {
@@ -57,18 +71,61 @@ describe("where", () => {
 
   it("combines every filter with AND", () => {
     expect(
-      where({ q: "bau", legal_form: "GmbH", register_status: "aktiv", wz: "62", website: "1", fundings: "1", source: "website_discovery" }),
+      where({
+        q: "bau",
+        legal_form: ["GmbH", "AG"],
+        technology_field: ["Software, IT"],
+        register_status: "aktiv",
+        wz: "62",
+        website: "1",
+        fundings: "1",
+        source: ["website_discovery"],
+        tld: ["de"],
+        fund_min: "1000",
+        fund_max: "50000",
+      }),
     ).toEqual({
       _and: [
-        { name: { _ilike: "%bau%" } },
-        { legal_form: { _eq: "GmbH" } },
         { register_status: { _eq: "aktiv" } },
+        { legal_form: { _in: ["GmbH", "AG"] } },
+        { technology_field: { _in: ["Software, IT"] } },
         { wz_division_estimated: { _like: "62%" } },
         { website: { _is_null: false } },
         { funding_count: { _gt: 0 } },
-        { source_keys: { _contains: ["website_discovery"] } },
+        { _or: [{ source_keys: { _contains: ["website_discovery"] } }] },
+        { website: { _iregex: "^([a-z]+://)?[^/:?#]*\\.(de)([:/?#]|$)" } },
+        { funding_total_eur: { _gte: 1000 } },
+        { funding_total_eur: { _lte: 50000 } },
       ],
     });
+  });
+
+  it("matches any of several sources", () => {
+    expect(where({ source: ["a", "b"], register_status: "all" })).toEqual({
+      _and: [{ _or: [{ source_keys: { _contains: ["a"] } }, { source_keys: { _contains: ["b"] } }] }],
+    });
+  });
+
+  it("matches a website by the last label of its host only", () => {
+    const pattern = new RegExp(
+      (where({ tld: ["de", "berlin"], register_status: "all" })._and as { website: { _iregex: string } }[])[0].website._iregex,
+      "i",
+    );
+    expect(["https://www.example.de", "example.berlin/impressum", "http://a.de:8080"].every((w) => pattern.test(w))).toBe(true);
+    expect(["https://de.example.com", "https://example.com/de", "https://example.dev"].some((w) => pattern.test(w))).toBe(false);
+  });
+
+  it("allows only euro amounts as funding bounds", () => {
+    expect(where({ fund_min: "0", register_status: "all" })).toEqual({ _and: [{ funding_total_eur: { _gte: 0 } }] });
+    expect(where({ fund_min: "1e9", fund_max: "-5", register_status: "all" })).toEqual({});
+  });
+
+  it("reads funding bounds written with thousands dots, spaces or €", () => {
+    expect(where({ fund_min: "1.000 €", fund_max: "50 000", register_status: "all" })).toEqual({
+      _and: [{ funding_total_eur: { _gte: 1000 } }, { funding_total_eur: { _lte: 50000 } }],
+    });
+    expect(where({ fund_min: "1.000,50", register_status: "all" })).toEqual({});
+    expect(where({ fund_min: "1000.50", fund_max: "1.5", register_status: "all" })).toEqual({});
   });
 
   it("filters the estimated WZ division by its two digits", () => {
@@ -77,7 +134,7 @@ describe("where", () => {
 
   it("drops a WZ prefix that is not a WZ code", () => {
     expect(where({ wz: "62%' OR 1=1", register_status: "all" })).toEqual({});
-    expect(where({ source: "x'] } }", register_status: "all" })).toEqual({});
+    expect(where({ source: ["x'] } }"], tld: ["de|.*"], register_status: "all" })).toEqual({});
   });
 });
 
@@ -90,12 +147,14 @@ describe("withParams", () => {
 
 describe("listParams", () => {
   it("takes the first value of a repeated key, so filters do not throw", () => {
-    const params = listParams({ q: ["a", "b"], legal_form: ["GmbH", "AG"], page: "2", sort: undefined });
-    expect(params).toEqual({ q: "a", legal_form: "GmbH", page: "2" });
-    expect(where(params)).toEqual({
-      _and: [{ name: { _ilike: "%a%" } }, { legal_form: { _eq: "GmbH" } }, { register_status: { _eq: "active" } }],
-    });
-    expect(withParams(params, {})).toBe("/?q=a&legal_form=GmbH&page=2");
+    const params = listParams({ q: ["a", "b"], page: ["2", "3"], sort: undefined });
+    expect(params).toEqual({ q: "a", page: "2" });
+  });
+
+  it("keeps every value of a multi-select, dropping empty ones, and repeats them in links", () => {
+    const params = listParams({ legal_form: ["GmbH", "AG", ""], source: "x", tld: "" });
+    expect(params).toEqual({ legal_form: ["GmbH", "AG"], source: ["x"] });
+    expect(withParams(params, {})).toBe("/?legal_form=GmbH&legal_form=AG&source=x");
   });
 
   it("joins the repeated cols of the column checkboxes", () => {
@@ -191,9 +250,9 @@ describe("search by register number", () => {
     expect(registerNumberPattern("Bau 2000 GmbH")).toBeUndefined();
     for (const q of ["2000 AG", "42 AG", "3D"]) {
       expect(registerNumberPattern(q)).toBeUndefined();
-      expect(where({ q, register_status: "all" })).toEqual({ _and: [{ name: { _ilike: `%${q}%` } }] });
+      expect(searchTerm({ q })).toBe(q);
     }
-    expect(where({ q: "Berghain", register_status: "all" })).toEqual({ _and: [{ name: { _ilike: "%Berghain%" } }] });
+    expect(searchTerm({ q: "Berghain" })).toBe("Berghain");
   });
 
   it("searches name or register number when the search looks like a number", () => {
@@ -208,5 +267,25 @@ describe("sorting by register number", () => {
     expect(orderBy({ sort: "registration_number", dir: "asc" })).toEqual([
       { registration_number: "asc_nulls_last" }, { name: "asc" }, { id: "asc" },
     ]);
+  });
+});
+
+describe("search", () => {
+  it("searches by words with the fuzzy function, a register number exactly", () => {
+    expect(searchTerm({ q: " Berghian " })).toBe("Berghian");
+    expect(searchTerm({ q: "HRB 92123" })).toBeUndefined();
+    expect(searchTerm({ q: "  " })).toBeUndefined();
+    expect(listField({ q: "Berghian" }, "companies_aggregate")).toBe(
+      "companies_aggregate: search_companies_aggregate(args: { search: $search }, ",
+    );
+    expect(listField({ q: "HRB 92123" }, "companies")).toBe("companies(");
+    expect(searchVariable({ q: "Berghian" })).toBe("$search: String!, ");
+    expect(searchVariable({})).toBe("");
+  });
+
+  it("orders a search by relevance unless a column is chosen", () => {
+    expect(sortOf({ q: "zalando" })).toEqual({ key: undefined, dir: "asc" });
+    expect(orderBy({ q: "zalando" })).toEqual([]);
+    expect(orderBy({ q: "zalando", sort: "revenue" })[0]).toEqual({ revenue: "asc_nulls_last" });
   });
 });

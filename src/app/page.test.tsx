@@ -35,10 +35,12 @@ const list = (total: number, companies = [company()]) => ({
     register_status_options: [],
     technology_field_options: [],
     sources: [],
+    website_tlds: [{ tld: "de", company_count: 9006 }],
   },
 });
-const render = async (search: Record<string, string>) =>
+const renderParams = async (search: Record<string, string | string[]>) =>
   renderToStaticMarkup(await CompaniesPage({ searchParams: Promise.resolve(search) }));
+const render = (search: Record<string, string>) => renderParams(search);
 const headers = (html: string) => [...html.matchAll(/<th scope="col"[^>]*>.*?<\/th>/g)].length;
 
 describe("company list", () => {
@@ -48,7 +50,7 @@ describe("company list", () => {
     expect(requests).toHaveLength(1);
     expect(requests[0].authorization).toBe("Bearer token");
     expect(requests[0].variables).toMatchObject({
-      where: { _and: [{ legal_form: { _eq: "GmbH" } }, { register_status: { _eq: "active" } }] },
+      where: { _and: [{ register_status: { _eq: "active" } }, { legal_form: { _in: ["GmbH"] } }] },
       order_by: [{ revenue: "desc_nulls_last" }, { name: "asc" }, { id: "asc" }],
       limit: 50,
       offset: 100,
@@ -60,7 +62,25 @@ describe("company list", () => {
     stubHasura(list(120));
     const html = await render({});
     expect(html).toContain("120 Treffer, Seite 1 von 3");
-    expect(html).toContain('<option value="AG">AG</option>');
+    expect(html).toMatch(/<input type="checkbox" checked="" value="AG"\/>/);
+    expect(html).toContain(".de (9.006)");
+  });
+
+  it("searches with the fuzzy search function, by relevance, and shows its hit count", async () => {
+    const requests = stubHasura({ Companies: { ...list(7).Companies } });
+    const html = await render({ q: "berghian" });
+    expect(requests[0].query).toContain("companies: search_companies(args: { search: $search }");
+    expect(requests[0].query).toContain("companies_aggregate: search_companies_aggregate(args: { search: $search }");
+    expect(requests[0].variables).toMatchObject({ search: "berghian", order_by: [] });
+    expect(html).toContain("7 Treffer");
+  });
+
+  it("filters by several values of a multi-select", async () => {
+    const requests = stubHasura(list(1));
+    await renderParams({ legal_form: ["GmbH", "AG"], tld: ["de"] });
+    expect(requests[0].variables.where).toMatchObject({
+      _and: expect.arrayContaining([{ legal_form: { _in: ["GmbH", "AG"] } }]),
+    });
   });
 
   it("links each company with the list it came from and its position", async () => {

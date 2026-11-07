@@ -10,10 +10,31 @@ import {
   text,
 } from "@/lib/columns";
 import { formatDate, formatEuro, MAX_COMMENT_LENGTH, UUID } from "@/lib/format";
-import { CLAIM_FIELDS, type ClaimRow, HISTORY_FIELDS, HISTORY_LIMIT, type HistoryRow } from "@/lib/history";
+import {
+  CLAIM_FIELDS,
+  type ClaimRow,
+  HISTORY_FIELDS,
+  HISTORY_LIMIT,
+  type HistoryRow,
+} from "@/lib/history";
 import { hasura } from "@/lib/hasura";
-import { type Provenance, PROVENANCE_FIELDS, provenanceFor } from "@/lib/provenance";
-import { listParams, neighbours, orderBy, PAGE_SIZE, where, withParams } from "@/lib/query";
+import {
+  type Provenance,
+  PROVENANCE_FIELDS,
+  provenanceFor,
+} from "@/lib/provenance";
+import {
+  listField,
+  type ListParams,
+  listParams,
+  neighbours,
+  orderBy,
+  PAGE_SIZE,
+  searchTerm,
+  searchVariable,
+  where,
+  withParams,
+} from "@/lib/query";
 import { Pager } from "@/app/pager";
 import { addComment } from "./actions";
 import { FeedbackButtons, FieldCell } from "./feedback-buttons";
@@ -45,9 +66,9 @@ const CLAIMS = `
   }`;
 
 // The list around this company, with the filters and sort it was opened from.
-const NEIGHBOURS = `
-  query Neighbours($where: companies_bool_exp!, $order_by: [companies_order_by!], $offset: Int!) {
-    companies(where: $where, order_by: $order_by, offset: $offset, limit: 3) { id name }
+const neighboursQuery = (list: ListParams) => `
+  query Neighbours(${searchVariable(list)}$where: companies_bool_exp!, $order_by: [companies_order_by!], $offset: Int!) {
+    ${listField(list, "companies")}where: $where, order_by: $order_by, offset: $offset, limit: 3) { id name }
   }`;
 
 const NAV = "text-sm text-zinc-500 hover:text-zinc-900 hover:no-underline";
@@ -101,17 +122,29 @@ export default async function CompanyPage({
     pos === undefined
       ? undefined
       : hasura<{ companies: { id: string; name: string }[] }>(
-          NEIGHBOURS,
-          { where: where(list), order_by: orderBy(list), offset },
+          neighboursQuery(list),
+          {
+            search: searchTerm(list),
+            where: where(list),
+            order_by: orderBy(list),
+            offset,
+          },
           session.accessToken,
         ),
     showClaims
-      ? hasura<{ company_claims: ClaimRow[] }>(CLAIMS, { id }, session.accessToken)
+      ? hasura<{ company_claims: ClaimRow[] }>(
+          CLAIMS,
+          { id },
+          session.accessToken,
+        )
       : undefined,
   ]);
   let c = first;
   if (!c) notFound();
-  const fundingPages = Math.max(1, Math.ceil(c.funding_count / FUNDINGS_PAGE_SIZE));
+  const fundingPages = Math.max(
+    1,
+    Math.ceil(c.funding_count / FUNDINGS_PAGE_SIZE),
+  );
   if (fundingsPage > fundingPages) {
     fundingsPage = fundingPages;
     c = await loadCompany(fundingsPage);
@@ -119,12 +152,23 @@ export default async function CompanyPage({
   }
   const { prev, next } = around ? neighbours(around.companies, id, offset) : {};
   const href = (n: { id: string; pos: number }) =>
-    withParams(list, { pos: String(n.pos), fpage: undefined, claims: undefined }, `/companies/${n.id}`);
+    withParams(
+      list,
+      { pos: String(n.pos), fpage: undefined, claims: undefined },
+      `/companies/${n.id}`,
+    );
   const firstFunding = (fundingsPage - 1) * FUNDINGS_PAGE_SIZE + 1;
 
   const votes = tally(c.feedback, session.userId);
   const cell = (column: (typeof COLUMNS)[number], withValue = true) => (
-    <FieldCell company={c} column={column} votes={votes} provenance={c.provenance} corrections withValue={withValue} />
+    <FieldCell
+      company={c}
+      column={column}
+      votes={votes}
+      provenance={c.provenance}
+      corrections
+      withValue={withValue}
+    />
   );
   const fields = COLUMNS.filter((col) => col.key !== "comment").map(
     (col) => [col.label, cell(col)] as const,
@@ -132,9 +176,20 @@ export default async function CompanyPage({
 
   return (
     <div className="mx-auto max-w-4xl">
-      <nav aria-label="Unternehmen blättern" className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+      <nav
+        aria-label="Unternehmen blättern"
+        className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2"
+      >
         <Link
-          href={withParams(list, { pos: undefined, fpage: undefined, claims: undefined, page: pos === undefined ? undefined : String(Math.floor(pos / PAGE_SIZE) + 1) })}
+          href={withParams(list, {
+            pos: undefined,
+            fpage: undefined,
+            claims: undefined,
+            page:
+              pos === undefined
+                ? undefined
+                : String(Math.floor(pos / PAGE_SIZE) + 1),
+          })}
           className={NAV}
         >
           ← Alle Unternehmen
@@ -142,12 +197,22 @@ export default async function CompanyPage({
         {(prev || next) && (
           <span className="flex gap-6">
             {prev && (
-              <Link href={href(prev)} className={NAV} rel="prev" title={prev.name}>
+              <Link
+                href={href(prev)}
+                className={NAV}
+                rel="prev"
+                title={prev.name}
+              >
                 ‹ Vorheriges
               </Link>
             )}
             {next && (
-              <Link href={href(next)} className={NAV} rel="next" title={next.name}>
+              <Link
+                href={href(next)}
+                className={NAV}
+                rel="next"
+                title={next.name}
+              >
                 Nächstes ›
               </Link>
             )}
@@ -161,13 +226,19 @@ export default async function CompanyPage({
       <dl className="grid grid-cols-[minmax(10rem,max-content)_1fr] border-t border-zinc-200 text-sm">
         {fields.map(([label, value]) => (
           <div key={label} className="contents [&:last-child>*]:border-0">
-            <dt className="border-b border-zinc-100 py-2.5 pr-4 text-zinc-500">{label}</dt>
-            <dd className="m-0 border-b border-zinc-100 py-2.5 break-words">{value}</dd>
+            <dt className="border-b border-zinc-100 py-2.5 pr-4 text-zinc-500">
+              {label}
+            </dt>
+            <dd className="m-0 border-b border-zinc-100 py-2.5 break-words">
+              {value}
+            </dd>
           </div>
         ))}
       </dl>
 
-      <h2 id="foerderungen" className="mt-10 mb-3 scroll-mt-4">Förderungen</h2>
+      <h2 id="foerderungen" className="mt-10 mb-3 scroll-mt-4">
+        Förderungen
+      </h2>
       {c.funding_count === 0 ? (
         <p className="text-sm text-zinc-500">
           Keine Förderungen im Förderkatalog des Bundes zugeordnet.
@@ -176,8 +247,9 @@ export default async function CompanyPage({
         <div className="overflow-x-auto border-t border-zinc-200">
           <table className="w-full border-collapse text-sm">
             <caption className="caption-bottom px-3 py-2.5 text-left text-xs text-zinc-500">
-              {firstFunding}–{firstFunding + c.fundings.length - 1} von {c.funding_count}, neueste zuerst.
-              Quelle: Förderkatalog des Bundes
+              {firstFunding}–{firstFunding + c.fundings.length - 1} von{" "}
+              {c.funding_count}, neueste zuerst. Quelle: Förderkatalog des
+              Bundes
             </caption>
             <thead>
               <tr>
@@ -208,7 +280,12 @@ export default async function CompanyPage({
                   <td className="whitespace-nowrap">
                     <ProvenanceInfo
                       label={`Förderung ${f.fkz}`}
-                      rows={provenanceFor(c.provenance, "fundings", f.fkz, true)}
+                      rows={provenanceFor(
+                        c.provenance,
+                        "fundings",
+                        f.fkz,
+                        true,
+                      )}
                     />
                     <FeedbackButtons
                       companyId={c.id}
@@ -228,7 +305,9 @@ export default async function CompanyPage({
           <Pager
             current={fundingsPage}
             pages={fundingPages}
-            href={(n) => `${withParams(list, { fpage: n > 1 ? String(n) : undefined }, `/companies/${id}`)}#foerderungen`}
+            href={(n) =>
+              `${withParams(list, { fpage: n > 1 ? String(n) : undefined }, `/companies/${id}`)}#foerderungen`
+            }
           />
         </nav>
       )}
@@ -263,10 +342,7 @@ export default async function CompanyPage({
       ) : (
         <ul className="list-none divide-y divide-zinc-100 border-t border-zinc-200 p-0">
           {c.comments.map((comment) => (
-            <li
-              key={comment.id}
-              className="py-4 text-sm whitespace-pre-wrap"
-            >
+            <li key={comment.id} className="py-4 text-sm whitespace-pre-wrap">
               <span className="text-xs text-zinc-500">
                 {comment.author_id === session.userId ? "Sie" : "Kolleg:in"} ·{" "}
                 {formatDate(comment.created_at)}

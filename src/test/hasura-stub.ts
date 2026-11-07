@@ -17,11 +17,11 @@ export const company = (over: Partial<CompanyProfile> = {}): CompanyProfile => (
  */
 export function stubHasura(answers: Record<string, unknown>) {
   vi.stubEnv("HASURA_GRAPHQL_URL", "http://hasura.test/v1/graphql");
-  const requests: { operation: string; variables: Record<string, unknown>; authorization: string }[] = [];
+  const requests: { operation: string; query: string; variables: Record<string, unknown>; authorization: string }[] = [];
   vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
     const { query, variables } = JSON.parse(String(init.body));
     const operation = /(?:query|mutation) (\w+)/.exec(query)?.[1] ?? "";
-    requests.push({ operation, variables, authorization: new Headers(init.headers).get("authorization") ?? "" });
+    requests.push({ operation, query, variables, authorization: new Headers(init.headers).get("authorization") ?? "" });
     if (!(operation in answers)) return Response.json({ errors: [{ message: `no stub for ${operation}` }] });
     return Response.json({ data: answers[operation] });
   });

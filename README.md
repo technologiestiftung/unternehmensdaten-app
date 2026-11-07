@@ -2,7 +2,7 @@
 
 The web app for the Berlin company database. It shows one record per company, with the target
 columns, the federal grants (Förderungen) and comments by colleagues. The company list can be
-sorted and filtered (the search finds a name or a register number such as `HRB 121291`), and the filtered view is in the URL, so it can be shared. The list starts with active companies only: a dissolved company often has the same name as an active one, and side by side they look like duplicates. "alle" under Registerstatus shows every status; a search by register number finds the entry whatever its status. The browser remembers
+sorted and filtered (the search is fuzzy on name, register number, website and address and sorts by relevance; an exact register number such as `HRB 121291` finds that entry; Quelle, Rechtsform, Technologiefeld and Website-Endung take several values, Förderungen a von/bis € range), and the filtered view is in the URL, so it can be shared. The list starts with active companies only: a dissolved company often has the same name as an active one, and side by side they look like duplicates. "alle" under Registerstatus shows every status; a search by register number finds the entry whatever its status. The browser remembers
 the chosen columns in a `cols` cookie for the next visit; a link with its own columns wins. Users can mark
 **every shown value** (except the register number, an identifier) as correct or wrong and enter the right one (also a value that is missing),
 on the company page or in the list with the pencil icon (**Werte bewerten**) above the table, and each value has an **ⓘ** that says
@@ -42,7 +42,7 @@ The data, the database schema and the Hasura permissions live in the other repo,
 browser ──login──▶ Keycloak
    │                  ▲ token
    ▼                  │
-this app (Next.js) ───┴──▶ Hasura ──reader role──▶ Postgres (v_company_profile, company_comments, extraction_feedback, v_field_provenance, v_company_history, v_company_claims, v_source_overview, v_source_runs, technology_fields, technology_field_keywords, wz_divisions, review_settings, review_rounds, review_tasks, review_verdicts)
+this app (Next.js) ───┴──▶ Hasura ──reader role──▶ Postgres (v_company_profile, company_comments, extraction_feedback, v_field_provenance, v_company_history, v_company_claims, v_source_overview, v_source_runs, technology_fields, technology_field_keywords, wz_divisions, review_settings, review_rounds, review_tasks, review_verdicts, search_companies, v_website_tlds)
 ```
 
 ## Run it locally

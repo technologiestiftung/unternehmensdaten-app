@@ -27,11 +27,19 @@ const render = async (search: Record<string, string>, id = ID) =>
 const link = (html: string, text: string) => new RegExp(`<a[^>]*href="([^"]*)"[^>]*>${text}</a>`).exec(html)?.[1];
 
 describe("company page", () => {
+  it("pages through a search in the search's own order", async () => {
+    const requests = stubHasura({ Company: detail, Neighbours: around("Erste GmbH", "Mitte AG", "Letzte KG") });
+    await render({ q: "berghian", pos: "3" });
+    const neighbours = requests.find((r) => r.operation === "Neighbours");
+    expect(neighbours?.query).toContain("companies: search_companies(args: { search: $search }");
+    expect(neighbours?.variables).toMatchObject({ search: "berghian", order_by: [], offset: 2 });
+  });
+
   it("links to the previous and next company of the list it came from", async () => {
     const requests = stubHasura({ Company: detail, Neighbours: around("Erste GmbH", "Mitte AG", "Letzte KG") });
     const html = await render({ legal_form: "AG", sort: "revenue", pos: "60" });
     expect(requests.find((r) => r.operation === "Neighbours")?.variables).toMatchObject({
-      where: { _and: [{ legal_form: { _eq: "AG" } }, { register_status: { _eq: "active" } }] },
+      where: { _and: [{ register_status: { _eq: "active" } }, { legal_form: { _in: ["AG"] } }] },
       order_by: [{ revenue: "asc_nulls_last" }, { name: "asc" }, { id: "asc" }],
       offset: 59,
     });
