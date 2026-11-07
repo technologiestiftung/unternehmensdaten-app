@@ -306,4 +306,18 @@ describe("Gründung", () => {
     expect(row).toContain("andere Domain · 20 %");
     expect(row).toMatch(/alt@mitte\.example<\/a><span[^>]*>60 %<\/span>/);
   });
+
+  it("names a personal address, shows a kind without a confidence alone, and labels nothing it knows nothing about", async () => {
+    const emails = [
+      { email: "anna.schmidt@mitte.example", kind: "person", confidence: 0.4 },
+      { email: "neu@mitte.example", kind: "role", confidence: null },
+      { email: "leer@mitte.example", kind: null, confidence: null },
+    ];
+    stubHasura({ Company: { companies: [{ ...detail.companies[0], emails }] } });
+    const row = /E-Mail<\/dt><dd[^>]*>(.*?)<\/dd>/.exec(await render({}))?.[1] ?? "";
+    expect(row).toContain("Personenadresse · 40 %");
+    expect(row).toMatch(/neu@mitte\.example<\/a><span[^>]*>Firmenadresse<\/span>/);
+    expect(row).toMatch(/leer@mitte\.example<\/a><\/li>/);
+    expect(row).not.toMatch(/vote|Prüf|Quelle/i);
+  });
 });
