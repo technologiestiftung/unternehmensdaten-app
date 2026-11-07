@@ -24,6 +24,8 @@ export type CompanyProfile = {
   website: string | null;
   management: string | null;
   business_purpose: string | null;
+  /** What the company's own homepage says it does (unternehmensdatenbank #152); never the register's purpose. */
+  activity_description: string | null;
   deeptech_class: string | null;
   deeptech_confidence: number | null;
   is_ai: boolean | null;
@@ -38,7 +40,7 @@ export type CompanyProfile = {
 /** The GraphQL selection for every column below. */
 export const PROFILE_FIELDS = `
   id name employee_count revenue funding_count funding_total_eur wz_code wz_division_estimated established_at established_year
-  address legal_form technology_field website management business_purpose
+  address legal_form technology_field website management business_purpose activity_description
   deeptech_class deeptech_confidence is_ai register_status registration_number updated_at`;
 
 export const text = (value: string | null) => value ?? "–";
@@ -161,6 +163,8 @@ export const COLUMNS: Column[] = [
   },
   { key: "management", label: "Geschäftsführung", render: (c) => text(c.management), long: true, multiValue: true, votes: (c) => c.management ? c.management.split(MANAGEMENT_SEPARATOR) : [MISSING] },
   { key: "business_purpose", label: "Tätigkeitsbeschreibung", render: (c) => text(c.business_purpose), long: true, votes: (c) => one(c.business_purpose) },
+  // The company's own words from its homepage, not the register's purpose: its own column, labelled as such.
+  { key: "activity_description", label: "Tätigkeit (laut Website)", render: (c) => text(c.activity_description), long: true, votes: (c) => one(c.activity_description) },
   { key: "comment", label: "Kommentar", render: (c) => c.comments?.[0]?.body ?? "–", long: true },
   {
     key: "deeptech",

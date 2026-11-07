@@ -61,7 +61,7 @@ describe("column votes", () => {
     id: "x", name: "Beispiel GmbH", employee_count: null, revenue: 1000, funding_count: 0,
     funding_total_eur: null, wz_code: null, wz_division_estimated: null, established_at: null, established_year: null, address: "Weg 1", legal_form: "GmbH",
     technology_field: null, website: "https://a.de", management: "Erika Muster; Max Beispiel",
-    business_purpose: null, deeptech_class: null, deeptech_confidence: null, is_ai: false,
+    business_purpose: null, activity_description: null, deeptech_class: null, deeptech_confidence: null, is_ai: false,
     register_status: "aktiv", registration_number: null, updated_at: null,
   } satisfies CompanyProfile;
   const votesOf = (key: string) => COLUMNS.find((c) => c.key === key)?.votes?.(company);

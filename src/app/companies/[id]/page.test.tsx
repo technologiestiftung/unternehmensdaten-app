@@ -321,3 +321,24 @@ describe("Gründung", () => {
     expect(row).not.toMatch(/vote|Prüf|Quelle/i);
   });
 });
+
+describe("activity description (unternehmensdatenbank #152)", () => {
+  it("shows the homepage's description in its own votable column next to the register purpose", async () => {
+    const own = "Wir entwickeln Software für Stadtwerke.";
+    const purpose = "Gegenstand des Unternehmens ist die Entwicklung von Software.";
+    stubHasura({ Company: { companies: [{ ...detail.companies[0], business_purpose: purpose, activity_description: own }] } });
+    const html = await render({});
+    expect(html).toContain("Tätigkeitsbeschreibung");
+    expect(html).toContain("Tätigkeit (laut Website)");
+    expect(html).toContain(own);
+    expect(html).toContain(purpose);
+    expect(html.indexOf("Tätigkeitsbeschreibung")).toBeLessThan(html.indexOf("Tätigkeit (laut Website)"));
+    expect(votes).toContainEqual([ID, "activity_description", own]);
+  });
+
+  it("shows a dash when the homepage gave none", async () => {
+    stubHasura({ Company: detail });
+    const html = await render({});
+    expect(html).toMatch(/Tätigkeit \(laut Website\)[\s\S]*?–/);
+  });
+});
