@@ -288,6 +288,10 @@ describe("Gründung", () => {
     expect(link(html, "Nachfolge e.V.")).toBe(`/companies/${successor.successor_id}`);
     expect(html).toContain("(laut GLEIF)");
     expect(html.indexOf("Nachfolger</dt>")).toBeGreaterThan(html.indexOf("Registerstatus</dt>"));
+    // A link between companies, not a correctable field: nothing to vote on, and E-Mail stays last.
+    expect(votes.flat()).not.toContain("Nachfolge e.V.");
+    expect(html.match(/<dd[^>]*>(?:(?!<\/dd>).)*Nachfolge e\.V\.(?:(?!<\/dd>).)*<\/dd>/s)?.[0]).not.toMatch(/<button|ⓘ/);
+    expect(html.lastIndexOf("</dt>")).toBe(html.indexOf("E-Mail</dt>") + "E-Mail".length);
     stubHasura({ Company: detail });
     expect(await render({})).not.toContain("Nachfolger");
   });
