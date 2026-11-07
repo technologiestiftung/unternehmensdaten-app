@@ -50,6 +50,7 @@ const COMPANY = `
       fundings(order_by: [{ period_from: desc_nulls_last }, { fkz: asc }], limit: ${FUNDINGS_PAGE_SIZE}, offset: $fundings_offset) {
         fkz amount_eur period_from period_to topic ministry
       }
+      emails(order_by: { email: asc }) { email }
       comments(order_by: { created_at: desc }) { id body author_id created_at }
       feedback { field_name value verdict correction author_id }
       provenance { ${PROVENANCE_FIELDS} }
@@ -82,6 +83,8 @@ type Company = Omit<CompanyProfile, "comments"> & {
     topic: string | null;
     ministry: string | null;
   }[];
+  // Stored, never resolved: every email any source read, shown for research (no votes, no history).
+  emails: { email: string }[];
   comments: {
     id: string;
     body: string;
@@ -170,9 +173,25 @@ export default async function CompanyPage({
       withValue={withValue}
     />
   );
-  const fields = COLUMNS.filter((col) => col.key !== "comment").map(
-    (col) => [col.label, cell(col)] as const,
-  );
+  const fields = [
+    ...COLUMNS.filter((col) => col.key !== "comment").map((col) => [col.label, cell(col)] as const),
+    [
+      "E-Mail",
+      c.emails.length ? (
+        <ul className="m-0 list-none p-0">
+          {c.emails.map(({ email }) => (
+            <li key={email}>
+              <a href={`mailto:${email}`} className="break-all">
+                {email}
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        "–"
+      ),
+    ] as const,
+  ];
 
   return (
     <div className="mx-auto max-w-4xl">

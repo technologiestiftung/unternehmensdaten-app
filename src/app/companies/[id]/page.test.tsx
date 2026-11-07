@@ -18,7 +18,7 @@ afterEach(() => {
 });
 
 const ID = "00000000-0000-4000-8000-000000000002";
-const detail = { companies: [{ ...company({ id: ID, name: "Mitte AG" }), fundings: [], comments: [], feedback: [], provenance: [], history: [] }] };
+const detail = { companies: [{ ...company({ id: ID, name: "Mitte AG" }), fundings: [], emails: [], comments: [], feedback: [], provenance: [], history: [] }] };
 const around = (...names: string[]) => ({
   companies: names.map((name, i) => ({ id: name === "Mitte AG" ? ID : `00000000-0000-4000-8000-00000000001${i}`, name })),
 });
@@ -268,5 +268,15 @@ describe("Gründung", () => {
     const html = await render({});
     expect(html).toContain("12.05.2010");
     expect(html).toContain("Gründungsdatum");
+  });
+
+  it("lists every stored email as a mailto link, and a dash without one", async () => {
+    stubHasura({ Company: { companies: [{ ...detail.companies[0], emails: [{ email: "info@mitte.example" }, { email: "kontakt@mitte.example" }] }] } });
+    const html = await render({});
+    expect(html).toContain('<dt class="border-b border-zinc-100 py-2.5 pr-4 text-zinc-500">E-Mail</dt>');
+    expect(link(html, "info@mitte.example")).toBe("mailto:info@mitte.example");
+    expect(link(html, "kontakt@mitte.example")).toBe("mailto:kontakt@mitte.example");
+    stubHasura({ Company: detail });
+    expect(await render({})).toMatch(/E-Mail<\/dt><dd[^>]*>–<\/dd>/);
   });
 });
