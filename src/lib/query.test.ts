@@ -120,6 +120,13 @@ describe("where", () => {
     expect(where({ fund_min: "1e9", fund_max: "-5", register_status: "all" })).toEqual({});
   });
 
+  it("reads funding bounds written with thousands dots, spaces or €", () => {
+    expect(where({ fund_min: "1.000 €", fund_max: "50 000", register_status: "all" })).toEqual({
+      _and: [{ funding_total_eur: { _gte: 1000 } }, { funding_total_eur: { _lte: 50000 } }],
+    });
+    expect(where({ fund_min: "1.000,50", register_status: "all" })).toEqual({});
+  });
+
   it("filters the estimated WZ division by its two digits", () => {
     expect(where({ wz: "62.01", register_status: "all" })).toEqual({ _and: [{ wz_division_estimated: { _like: "62%" } }] });
   });

@@ -237,8 +237,11 @@ export function where(params: ListParams): Record<string, unknown> {
         _iregex: `^([a-z]+://)?[^/:?#]*\\.(${tlds.join("|")})([:/?#]|$)`,
       },
     });
-  const euro = (value: string | undefined) =>
-    value && /^\d{1,12}$/.test(value.trim()) ? Number(value) : undefined;
+  // Accepts how people write amounts: "1.000", "50 000", "2000 €".
+  const euro = (value: string | undefined) => {
+    const digits = value?.replace(/[.\s€]/g, "");
+    return digits && /^\d{1,12}$/.test(digits) ? Number(digits) : undefined;
+  };
   const [fundMin, fundMax] = [euro(params.fund_min), euro(params.fund_max)];
   if (fundMin !== undefined) and.push({ funding_total_eur: { _gte: fundMin } });
   if (fundMax !== undefined) and.push({ funding_total_eur: { _lte: fundMax } });

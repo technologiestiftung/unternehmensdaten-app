@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { type ToggleEvent, useId, useRef, useState } from "react";
 
 export type MultiSelectOption = { value: string; label: string };
 
@@ -10,9 +10,9 @@ const SEARCHABLE_FROM = 10;
 /**
  * A filter of several values: a button like a select that opens a popover of checkboxes with
  * "Alle auswählen" (top layer, so nothing clips it). Nothing chosen in the URL means all, and all
- * checked submits nothing, so the URL stays short. Applies on every change, like the other filters;
- * the surrounding form's own handlers skip it (`data-multi-select`), since it submits itself after
- * its checkboxes are named. Remount it (`key`) when the URL changes.
+ * checked submits nothing, so the URL stays short. Applies when the popover closes, so several
+ * values can be picked in one go; the surrounding form's own handlers skip it (`data-multi-select`).
+ * Remount it (`key`) when the URL changes.
  */
 export function MultiSelect({
   name,
@@ -32,36 +32,40 @@ export function MultiSelect({
     () => new Set(selected.length ? selected : options.map((o) => o.value)),
   );
   const [filter, setFilter] = useState("");
-  const isChanged = useRef(false);
+  const chosenOnOpen = useRef("");
 
   const isAll = options.every((o) => chosen.has(o.value));
-  // Submits after React has named the checkboxes: none named when all are chosen.
-  useEffect(() => {
-    if (isChanged.current && chosen.size > 0)
+  const chosenKey = [...chosen].sort().join("|");
+  const handleToggle = (event: ToggleEvent<HTMLDivElement>) => {
+    if (event.newState === "open") chosenOnOpen.current = chosenKey;
+    else if (chosenKey !== chosenOnOpen.current && chosen.size > 0)
       root.current?.closest("form")?.requestSubmit();
-    isChanged.current = false;
-  }, [chosen]);
-
-  const update = (next: Set<string>) => {
-    isChanged.current = true;
-    setChosen(next);
   };
   const toggle = (value: string) => {
     const next = new Set(chosen);
     if (!next.delete(value)) next.add(value);
-    update(next);
+    setChosen(next);
   };
 
-  const summary =
-    isAll || chosen.size === 0
-      ? "alle"
+  const summary = isAll
+    ? "alle"
+    : chosen.size === 0
+      ? "keine"
       : chosen.size === 1
         ? (options.find((o) => chosen.has(o.value))?.label ?? "1 ausgewählt")
         : `${chosen.size} ausgewählt`;
   const needle = filter.trim().toLowerCase();
-  const shown = needle
-    ? options.filter((o) => o.label.toLowerCase().includes(needle))
-    : options;
+  const matches = (option: MultiSelectOption) =>
+    option.label.toLowerCase().includes(needle);
+  const shownCount = options.filter(matches).length;
+  const status =
+    chosen.size === 0
+      ? "Mindestens einen Wert auswählen."
+      : !needle
+        ? ""
+        : shownCount === 0
+          ? "Keine Treffer."
+          : `${shownCount} Treffer`;
 
   return (
     <div ref={root} data-multi-select className="flex flex-col gap-1.5">
@@ -73,7 +77,7 @@ export function MultiSelect({
         popoverTarget={`${id}-popover`}
         aria-labelledby={`${id}-label ${id}-summary`}
         style={{ anchorName: anchor }}
-        className="flex w-full items-center justify-between gap-2 border border-zinc-300 bg-white px-3 py-2 text-left text-sm font-normal text-zinc-900 hover:bg-zinc-50"
+        className="flex w-full items-center justify-between gap-2 border border-zinc-500 bg-white px-3 py-2 text-left text-sm font-normal text-zinc-900 hover:bg-zinc-50"
       >
         <span id={`${id}-summary`} className="truncate">
           {summary}
@@ -92,6 +96,7 @@ export function MultiSelect({
       <div
         id={`${id}-popover`}
         popover="auto"
+        onToggle={handleToggle}
         style={{
           positionAnchor: anchor,
           positionArea: "bottom span-right",
@@ -117,19 +122,24 @@ export function MultiSelect({
             <input
               type="checkbox"
               checked={isAll}
+              ref={(el) => {
+                if (el) el.indeterminate = !isAll && chosen.size > 0;
+              }}
               onChange={() =>
-                update(new Set(isAll ? [] : options.map((o) => o.value)))
+                setChosen(new Set(isAll ? [] : options.map((o) => o.value)))
               }
             />
             Alle auswählen
           </label>
-          {chosen.size === 0 && (
-            <p className="m-0 text-xs text-zinc-500">
-              Mindestens einen Wert auswählen.
-            </p>
-          )}
-          {shown.map((option) => (
-            <label key={option.value} className="flex items-center gap-2">
+          <p role="status" className="m-0 text-xs text-zinc-500">
+            {status}
+          </p>
+          {options.map((option) => (
+            <label
+              key={option.value}
+              hidden={!matches(option)}
+              className="flex items-center gap-2"
+            >
               <input
                 type="checkbox"
                 name={isAll ? undefined : name}
@@ -140,9 +150,6 @@ export function MultiSelect({
               <span className="truncate">{option.label}</span>
             </label>
           ))}
-          {shown.length === 0 && (
-            <p className="m-0 text-xs text-zinc-500">Keine Treffer.</p>
-          )}
         </fieldset>
       </div>
     </div>

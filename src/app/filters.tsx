@@ -123,19 +123,21 @@ export function Filters({
       {params.review && (
         <input type="hidden" name="review" value={params.review} />
       )}
-      <label className="flex flex-col gap-1.5 text-xs font-medium text-zinc-500">
-        Suche
-        <input
-          name="q"
-          type="search"
-          placeholder="Name, Registernummer, Website, Adresse"
-          aria-describedby="search-hint"
-          defaultValue={params.q ?? ""}
-        />
-        <span id="search-hint" className="font-normal">
-          Findet auch Schreibweisen mit Tippfehlern.
+      <div className="flex flex-col gap-1.5">
+        <label className="flex flex-col gap-1.5 text-xs font-medium text-zinc-500">
+          Suche
+          <input
+            name="q"
+            type="search"
+            placeholder="Name, Registernummer, Website, Adresse"
+            aria-describedby="search-hint"
+            defaultValue={params.q ?? ""}
+          />
+        </label>
+        <span id="search-hint" className="text-xs text-zinc-500">
+          Name, Registernummer, Website oder Adresse, auch mit Tippfehlern.
         </span>
-      </label>
+      </div>
       {multiSelect("legal_form", "Rechtsform", asOptions(options.legal_form))}
       {multiSelect(
         "technology_field",
@@ -196,27 +198,26 @@ export function Filters({
           Förderungen gesamt (€)
         </legend>
         <div className="flex items-center gap-2">
-          <input
-            name="fund_min"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            aria-label="Förderungen ab €"
-            placeholder="von"
-            defaultValue={params.fund_min ?? ""}
-            className="w-full min-w-0"
-          />
-          <span aria-hidden="true" className="text-zinc-500">
-            –
-          </span>
-          <input
-            name="fund_max"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            aria-label="Förderungen bis €"
-            placeholder="bis"
-            defaultValue={params.fund_max ?? ""}
-            className="w-full min-w-0"
-          />
+          <label className="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-zinc-500">
+            von
+            <input
+              name="fund_min"
+              inputMode="numeric"
+              aria-label="Förderungen gesamt von (€)"
+              defaultValue={params.fund_min ?? ""}
+              className="w-full min-w-0"
+            />
+          </label>
+          <label className="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-zinc-500">
+            bis
+            <input
+              name="fund_max"
+              inputMode="numeric"
+              aria-label="Förderungen gesamt bis (€)"
+              defaultValue={params.fund_max ?? ""}
+              className="w-full min-w-0"
+            />
+          </label>
         </div>
       </fieldset>
       <fieldset className="flex flex-col gap-2">
