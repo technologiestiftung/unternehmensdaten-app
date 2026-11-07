@@ -32,13 +32,14 @@ export function MultiSelect({
     () => new Set(selected.length ? selected : options.map((o) => o.value)),
   );
   const [filter, setFilter] = useState("");
-  const chosenOnOpen = useRef("");
+  const chosenOnOpen = useRef(chosen);
 
   const isAll = options.every((o) => chosen.has(o.value));
-  const chosenKey = [...chosen].sort().join("|");
   const handleToggle = (event: ToggleEvent<HTMLDivElement>) => {
-    if (event.newState === "open") chosenOnOpen.current = chosenKey;
-    else if (chosenKey !== chosenOnOpen.current && chosen.size > 0)
+    const before = chosenOnOpen.current;
+    if (event.newState === "open") chosenOnOpen.current = chosen;
+    else if (chosen.size === 0) setChosen(before);
+    else if (chosen.size !== before.size || [...chosen].some((v) => !before.has(v)))
       root.current?.closest("form")?.requestSubmit();
   };
   const toggle = (value: string) => {

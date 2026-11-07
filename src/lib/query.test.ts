@@ -125,6 +125,7 @@ describe("where", () => {
       _and: [{ funding_total_eur: { _gte: 1000 } }, { funding_total_eur: { _lte: 50000 } }],
     });
     expect(where({ fund_min: "1.000,50", register_status: "all" })).toEqual({});
+    expect(where({ fund_min: "1000.50", fund_max: "1.5", register_status: "all" })).toEqual({});
   });
 
   it("filters the estimated WZ division by its two digits", () => {

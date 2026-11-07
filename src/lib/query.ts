@@ -239,7 +239,8 @@ export function where(params: ListParams): Record<string, unknown> {
     });
   // Accepts how people write amounts: "1.000", "50 000", "2000 €".
   const euro = (value: string | undefined) => {
-    const digits = value?.replace(/[.\s€]/g, "");
+    const amount = value?.replace(/[\s€]/g, "");
+    const digits = amount && /^\d{1,3}(\.\d{3})+$/.test(amount) ? amount.replace(/\./g, "") : amount;
     return digits && /^\d{1,12}$/.test(digits) ? Number(digits) : undefined;
   };
   const [fundMin, fundMax] = [euro(params.fund_min), euro(params.fund_max)];
