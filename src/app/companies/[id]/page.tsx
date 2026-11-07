@@ -57,6 +57,7 @@ const COMPANY = `
         fkz amount_eur period_from period_to topic ministry
       }
       emails(order_by: [{ confidence: desc_nulls_last }, { email: asc }]) { email kind confidence }
+      successor { successor_id successor_name source }
       comments(order_by: { created_at: desc }) { id body author_id created_at }
       feedback { field_name value verdict correction author_id }
       provenance { ${PROVENANCE_FIELDS} }
@@ -91,6 +92,8 @@ type Company = Omit<CompanyProfile, "comments"> & {
   }[];
   // Stored, never resolved: every email any source read, shown for research (no votes, no history).
   emails: { email: string; kind: string | null; confidence: number | null }[];
+  // GLEIF's successor of a merged company (#167), only when it is one of ours.
+  successor: { successor_id: string; successor_name: string; source: string } | null;
   comments: {
     id: string;
     body: string;
@@ -179,8 +182,18 @@ export default async function CompanyPage({
       withValue={withValue}
     />
   );
+  const successor = c.successor && ([
+    "Nachfolger",
+    <>
+      <Link href={`/companies/${c.successor.successor_id}`}>{c.successor.successor_name}</Link>
+      <span className="text-zinc-500"> (laut {c.successor.source})</span>
+    </>,
+  ] as const);
   const fields = [
-    ...COLUMNS.filter((col) => col.key !== "comment").map((col) => [col.label, cell(col)] as const),
+    ...COLUMNS.filter((col) => col.key !== "comment").flatMap((col) => [
+      [col.label, cell(col)] as const,
+      ...(col.key === "register_status" && successor ? [successor] : []),
+    ]),
     [
       "E-Mail",
       c.emails.length ? (

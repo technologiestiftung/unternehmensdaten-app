@@ -18,7 +18,8 @@ with the reason) and the WZ 2025 sections and divisions; a company's Technologie
 The company page also lists every email any source stored for the company (also ones that may be a person's;
 research phase), highest confidence first, each with its kind (Firmenadresse, Personenadresse, andere Domain;
 emails stored before the kind existed show only the confidence) and confidence, without votes, ⓘ or history;
-emails are judged in the **Prüfen** email rounds. It also has a
+emails are judged in the **Prüfen** email rounds. For a merged company whose successor (according to GLEIF) is one of
+ours, a **Nachfolger** row after Registerstatus links to that company, also without votes or ⓘ. It also has a
 **Verlauf**: every change of a shown value (old → new, source, confidence) and, behind a toggle,
 every claim any source made, shown or not, with the usual ✓/✗. A former value can be restored and a claim marked
 wrong from there: both are ordinary votes, so a restored value is shown once a second person agrees. The page

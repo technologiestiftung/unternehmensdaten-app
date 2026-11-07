@@ -18,7 +18,7 @@ afterEach(() => {
 });
 
 const ID = "00000000-0000-4000-8000-000000000002";
-const detail = { companies: [{ ...company({ id: ID, name: "Mitte AG" }), fundings: [], emails: [], comments: [], feedback: [], provenance: [], history: [] }] };
+const detail = { companies: [{ ...company({ id: ID, name: "Mitte AG" }), fundings: [], emails: [], successor: null, comments: [], feedback: [], provenance: [], history: [] }] };
 const around = (...names: string[]) => ({
   companies: names.map((name, i) => ({ id: name === "Mitte AG" ? ID : `00000000-0000-4000-8000-00000000001${i}`, name })),
 });
@@ -278,6 +278,22 @@ describe("Gründung", () => {
     expect(link(html, "kontakt@mitte.example")).toBe("mailto:kontakt@mitte.example");
     stubHasura({ Company: detail });
     expect(await render({})).toMatch(/E-Mail<\/dt><dd[^>]*>–<\/dd>/);
+  });
+
+  it("links GLEIF's successor right after the register status, and shows no row without one", async () => {
+    const successor = { successor_id: "22222222-2222-4222-8222-222222222222", successor_name: "Nachfolge e.V.", source: "GLEIF" };
+    const requests = stubHasura({ Company: { companies: [{ ...detail.companies[0], successor }] } });
+    const html = await render({});
+    expect(requests.find((r) => r.operation === "Company")?.query).toMatch(/successor\s*\{/);
+    expect(link(html, "Nachfolge e.V.")).toBe(`/companies/${successor.successor_id}`);
+    expect(html).toContain("(laut GLEIF)");
+    expect(html.indexOf("Nachfolger</dt>")).toBeGreaterThan(html.indexOf("Registerstatus</dt>"));
+    // A link between companies, not a correctable field: nothing to vote on, and E-Mail stays last.
+    expect(votes.flat()).not.toContain("Nachfolge e.V.");
+    expect(html.match(/<dd[^>]*>(?:(?!<\/dd>).)*Nachfolge e\.V\.(?:(?!<\/dd>).)*<\/dd>/s)?.[0]).not.toMatch(/<button|ⓘ/);
+    expect(html.lastIndexOf("</dt>")).toBe(html.indexOf("E-Mail</dt>") + "E-Mail".length);
+    stubHasura({ Company: detail });
+    expect(await render({})).not.toContain("Nachfolger");
   });
 
   it("shows a person's email too, as the last field, with nothing to vote on", async () => {
