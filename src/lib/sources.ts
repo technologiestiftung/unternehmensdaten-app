@@ -121,6 +121,7 @@ const FIELDS: Record<string, string> = {
   email: "E-Mail",
   phone: "Telefon",
   activity_keywords: "Stichworte zur Tätigkeit",
+  activity_description: "Tätigkeit (laut Website)",
   register_announcement: "Registerbekanntmachung",
   fundings: "Förderungen",
   revenue: "Umsatz",
