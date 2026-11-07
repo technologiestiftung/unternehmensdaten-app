@@ -2,8 +2,21 @@
 
 import Form from "next/form";
 import Link from "next/link";
-import { type ChangeEvent, type FormEvent, type MouseEvent, useRef } from "react";
-import { ALL_STATUSES, DEFAULT_STATUS, type ListParams, statusFilter, withParams } from "@/lib/query";
+import {
+  type ChangeEvent,
+  type FormEvent,
+  type MouseEvent,
+  useRef,
+} from "react";
+import {
+  ALL_STATUSES,
+  DEFAULT_STATUS,
+  type ListParams,
+  statusFilter,
+  withParams,
+} from "@/lib/query";
+import { formatNumber } from "@/lib/format";
+import { MultiSelect, type MultiSelectOption } from "./multi-select";
 import { Switch } from "./switch";
 
 export type FilterOptions = Record<
@@ -12,52 +25,87 @@ export type FilterOptions = Record<
 >;
 
 export type SourceOption = { key: string; name: string | null };
+export type TldOption = { tld: string; company_count: number };
 
-const SELECTS: { name: keyof FilterOptions; label: string }[] = [
-  { name: "legal_form", label: "Rechtsform" },
-  { name: "register_status", label: "Registerstatus" },
-  { name: "technology_field", label: "Technologiefeld" },
-];
+const asOptions = (values: string[]): MultiSelectOption[] =>
+  values.map((value) => ({ value, label: value }));
 
 // Pause after the last keystroke before a text field filters, so typing a word sends one request.
 const TYPING_DELAY_MS = 400;
 
-const isCheckbox = (el: EventTarget): el is HTMLInputElement => el instanceof HTMLInputElement && el.type === "checkbox";
+// A multi-select submits itself, after its own state has settled.
+const isInMultiSelect = (el: EventTarget) =>
+  el instanceof Element && el.closest("[data-multi-select]") !== null;
+
+const isCheckbox = (el: EventTarget): el is HTMLInputElement =>
+  el instanceof HTMLInputElement && el.type === "checkbox";
 
 /** A GET form: the filters live in the URL, so a filtered list can be shared as a link. */
 export function Filters({
   params,
   options,
   sources,
+  tlds,
 }: {
   params: ListParams;
   options: FilterOptions;
   sources: SourceOption[];
+  tlds: TldOption[];
 }) {
   const typingTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   // Dropdowns and checkboxes apply at once; text fields after a pause in typing (or on Enter).
   const handleChange = (event: ChangeEvent<HTMLFormElement>) => {
+    if (isInMultiSelect(event.target)) return;
     if (event.target instanceof HTMLSelectElement || isCheckbox(event.target)) {
       clearTimeout(typingTimer.current);
       event.currentTarget.requestSubmit();
     }
   };
   const handleInput = (event: FormEvent<HTMLFormElement>) => {
-    if (!(event.target instanceof HTMLInputElement) || isCheckbox(event.target)) return;
+    if (
+      !(event.target instanceof HTMLInputElement) ||
+      isCheckbox(event.target) ||
+      isInMultiSelect(event.target)
+    )
+      return;
     const form = event.currentTarget;
     clearTimeout(typingTimer.current);
-    typingTimer.current = setTimeout(() => form.requestSubmit(), TYPING_DELAY_MS);
+    typingTimer.current = setTimeout(
+      () => form.requestSubmit(),
+      TYPING_DELAY_MS,
+    );
   };
   // The form stays mounted across client navigation, so edited fields would keep their values after a reset.
   const clearFields = (event: MouseEvent<HTMLAnchorElement>) => {
     clearTimeout(typingTimer.current);
-    for (const field of Array.from(event.currentTarget.closest("form")?.elements ?? [])) {
+    for (const field of Array.from(
+      event.currentTarget.closest("form")?.elements ?? [],
+    )) {
+      // Multi-selects are controlled and remount with the new URL.
+      if (isInMultiSelect(field)) continue;
       if (isCheckbox(field)) field.checked = false;
-      else if (field instanceof HTMLSelectElement || (field instanceof HTMLInputElement && field.type !== "hidden")) {
+      else if (
+        field instanceof HTMLSelectElement ||
+        (field instanceof HTMLInputElement && field.type !== "hidden")
+      ) {
         field.value = "";
       }
     }
   };
+  const multiSelect = (
+    name: "legal_form" | "technology_field" | "source" | "tld",
+    label: string,
+    choices: MultiSelectOption[],
+  ) => (
+    // Remounted when the URL changes, so it shows what the list now filters by.
+    <MultiSelect
+      key={`${name}:${(params[name] ?? []).join("|")}`}
+      name={name}
+      label={label}
+      options={choices}
+      selected={params[name] ?? []}
+    />
+  );
   return (
     <Form
       role="search"
@@ -72,46 +120,60 @@ export function Filters({
       {params.sort && <input type="hidden" name="sort" value={params.sort} />}
       {params.dir && <input type="hidden" name="dir" value={params.dir} />}
       {params.cols && <input type="hidden" name="cols" value={params.cols} />}
-      {params.review && <input type="hidden" name="review" value={params.review} />}
+      {params.review && (
+        <input type="hidden" name="review" value={params.review} />
+      )}
       <label className="flex flex-col gap-1.5 text-xs font-medium text-zinc-500">
-        Name oder Registernummer
-        <input name="q" type="search" defaultValue={params.q ?? ""} />
+        Suche
+        <input
+          name="q"
+          type="search"
+          placeholder="Name, Registernummer, Website, Adresse"
+          aria-describedby="search-hint"
+          defaultValue={params.q ?? ""}
+        />
+        <span id="search-hint" className="font-normal">
+          Findet auch Schreibweisen mit Tippfehlern.
+        </span>
       </label>
-      {SELECTS.map(({ name, label }) => (
-        <label key={name} className="flex flex-col gap-1.5 text-xs font-medium text-zinc-500">
-          {label}
-          <select name={name} defaultValue={params[name] ?? ""}>
-            {name === "register_status" ? (
-              <>
-                {/* Empty means the default, labelled with what the list then filters by (`statusFilter`). */}
-                <option value="">{statusFilter({ q: params.q }) === ALL_STATUSES ? "alle" : DEFAULT_STATUS}</option>
-                <option value={ALL_STATUSES}>alle</option>
-              </>
-            ) : (
-              <option value="">alle</option>
-            )}
-            {options[name]
-              // "active" is the default's label; listed again only for a link that names it explicitly.
-              .filter((value) => name !== "register_status" || value !== DEFAULT_STATUS || params.register_status === DEFAULT_STATUS)
-              .map((value) => (
-                <option key={value} value={value}>
-                  {value}
-                </option>
-              ))}
-          </select>
-        </label>
-      ))}
+      {multiSelect("legal_form", "Rechtsform", asOptions(options.legal_form))}
+      {multiSelect(
+        "technology_field",
+        "Technologiefeld",
+        asOptions(options.technology_field),
+      )}
       <label className="flex flex-col gap-1.5 text-xs font-medium text-zinc-500">
-        Quelle
-        <select name="source" defaultValue={params.source ?? ""}>
-          <option value="">alle</option>
-          {sources.map(({ key, name }) => (
-            <option key={key} value={key}>
-              {name ?? key}
-            </option>
-          ))}
+        Registerstatus
+        <select
+          name="register_status"
+          defaultValue={params.register_status ?? ""}
+        >
+          {/* Empty means the default, labelled with what the list then filters by (`statusFilter`). */}
+          <option value="">
+            {statusFilter({ q: params.q }) === ALL_STATUSES
+              ? "alle"
+              : DEFAULT_STATUS}
+          </option>
+          <option value={ALL_STATUSES}>alle</option>
+          {options.register_status
+            // "active" is the default's label; listed again only for a link that names it explicitly.
+            .filter(
+              (value) =>
+                value !== DEFAULT_STATUS ||
+                params.register_status === DEFAULT_STATUS,
+            )
+            .map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
         </select>
       </label>
+      {multiSelect(
+        "source",
+        "Quelle",
+        sources.map(({ key, name }) => ({ value: key, label: name ?? key })),
+      )}
       <label className="flex flex-col gap-1.5 text-xs font-medium text-zinc-500">
         WZ (geschätzt) beginnt mit
         <input
@@ -121,8 +183,46 @@ export function Filters({
           defaultValue={params.wz ?? ""}
         />
       </label>
+      {multiSelect(
+        "tld",
+        "Website-Endung",
+        tlds.map(({ tld, company_count }) => ({
+          value: tld,
+          label: `.${tld} (${formatNumber(company_count)})`,
+        })),
+      )}
+      <fieldset className="flex flex-col gap-1.5">
+        <legend className="mb-1.5 text-xs font-medium text-zinc-500">
+          Förderungen gesamt (€)
+        </legend>
+        <div className="flex items-center gap-2">
+          <input
+            name="fund_min"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            aria-label="Förderungen ab €"
+            placeholder="von"
+            defaultValue={params.fund_min ?? ""}
+            className="w-full min-w-0"
+          />
+          <span aria-hidden="true" className="text-zinc-500">
+            –
+          </span>
+          <input
+            name="fund_max"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            aria-label="Förderungen bis €"
+            placeholder="bis"
+            defaultValue={params.fund_max ?? ""}
+            className="w-full min-w-0"
+          />
+        </div>
+      </fieldset>
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1.5 text-xs font-medium text-zinc-500">Nur Unternehmen</legend>
+        <legend className="mb-1.5 text-xs font-medium text-zinc-500">
+          Nur Unternehmen
+        </legend>
         <Switch name="website" isChecked={params.website === "1"}>
           mit Website
         </Switch>
@@ -136,7 +236,11 @@ export function Filters({
           Filtern
         </button>
         {/* Clears the filters; columns and review mode are view settings and stay. */}
-        <Link href={withParams({}, { cols: params.cols, review: params.review })} onClick={clearFields} className="py-2 text-sm text-zinc-500 hover:text-zinc-900">
+        <Link
+          href={withParams({}, { cols: params.cols, review: params.review })}
+          onClick={clearFields}
+          className="py-2 text-sm text-zinc-500 hover:text-zinc-900"
+        >
           Zurücksetzen
         </Link>
       </div>

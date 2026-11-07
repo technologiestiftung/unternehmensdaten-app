@@ -6,7 +6,7 @@ import { Filters } from "./filters";
 const options = { legal_form: ["GmbH"], register_status: ["active", "dissolved"], technology_field: [] };
 
 const statusOptions = (q?: string, register_status?: string) => {
-  const html = renderToStaticMarkup(<Filters params={{ q, register_status }} options={options} sources={[]} />);
+  const html = renderToStaticMarkup(<Filters params={{ q, register_status }} options={options} sources={[]} tlds={[]} />);
   const select = html.match(/<select name="register_status"[^>]*>(.*?)<\/select>/)?.[1] ?? "";
   return [...select.matchAll(/<option value="([^"]*)"([^>]*)>([^<]*)<\/option>/g)].map(([, value, attrs, label]) =>
     attrs.includes("selected") ? [value, label, "selected"] : [value, label]);
@@ -39,7 +39,7 @@ const submittedSelects = (html: string) =>
 
 describe("Filters → where, as a typed search submits the form", () => {
   const typed = (q: string) => {
-    const html = renderToStaticMarkup(<Filters params={{}} options={options} sources={[]} />);
+    const html = renderToStaticMarkup(<Filters params={{}} options={options} sources={[]} tlds={[]} />);
     return where(listParams({ ...submittedSelects(html), q }));
   };
   const statusConditions = (w: Record<string, unknown>) =>

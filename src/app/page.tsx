@@ -2,16 +2,26 @@ import Form from "next/form";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { requireSession } from "@/lib/auth";
-import { type Column, COLUMNS, NAME_COLUMN, type CompanyProfile, PROFILE_FIELDS } from "@/lib/columns";
+import {
+  type Column,
+  COLUMNS,
+  NAME_COLUMN,
+  type CompanyProfile,
+  PROFILE_FIELDS,
+} from "@/lib/columns";
 import { type FeedbackRow, tally } from "@/lib/feedback";
 import { formatNumber } from "@/lib/format";
 import { hasura } from "@/lib/hasura";
 import {
   COLS_COOKIE,
   isSortKey,
+  listField,
+  type ListParams,
   listParams,
   orderBy,
   PAGE_SIZE,
+  searchTerm,
+  searchVariable,
   sortOf,
   visibleColumns,
   where,
@@ -20,7 +30,12 @@ import {
 import { FieldCell } from "./companies/[id]/feedback-buttons";
 import { type Provenance, PROVENANCE_FIELDS } from "@/lib/provenance";
 import { ColumnPicker } from "./column-picker";
-import { Filters, type FilterOptions, type SourceOption } from "./filters";
+import {
+  Filters,
+  type FilterOptions,
+  type SourceOption,
+  type TldOption,
+} from "./filters";
 import { TABLE_TOOL, TABLE_TOOL_ACTIVE } from "./table-tool";
 import { KeepParams } from "./keep-params";
 import { Pager } from "./pager";
@@ -28,38 +43,47 @@ import { Pager } from "./pager";
 /** Long single-valued text is clamped; the ⓘ and ✓/✗ stay outside the clamp so they are not cut off. */
 const LIST_COLUMNS: Column[] = COLUMNS.map((col) =>
   col.long && !col.multiValue
-    ? { ...col, render: (c) => <div className="line-clamp-2 w-64">{col.render(c)}</div> }
+    ? {
+        ...col,
+        render: (c) => <div className="line-clamp-2 w-64">{col.render(c)}</div>,
+      }
     : col,
 );
 
 const distinct = (field: string) =>
   `${field}_options: companies(distinct_on: ${field}, order_by: { ${field}: asc }, where: { ${field}: { _is_null: false } }) { ${field} }`;
 
-const COMPANIES = `
+/** The list query; while searching it reads the fuzzy search function instead of the view (`listField`). */
+const companiesQuery = (params: ListParams) => `
   query Companies(
-    $where: companies_bool_exp!
+    ${searchVariable(params)}$where: companies_bool_exp!
     $order_by: [companies_order_by!]
     $limit: Int!
     $offset: Int!
     $review: Boolean!
   ) {
-    companies(where: $where, order_by: $order_by, limit: $limit, offset: $offset) {
+    ${listField(params, "companies")}where: $where, order_by: $order_by, limit: $limit, offset: $offset) {
       ${PROFILE_FIELDS}
       comments(limit: 1, order_by: { created_at: desc }) { body }
       feedback @include(if: $review) { field_name value verdict author_id }
       provenance { ${PROVENANCE_FIELDS} }
     }
-    companies_aggregate(where: $where) { aggregate { count } }
+    ${listField(params, "companies_aggregate")}where: $where) { aggregate { count } }
     ${distinct("legal_form")}
     ${distinct("register_status")}
     ${distinct("technology_field")}
     sources(order_by: { name: asc }) { key name }
+    website_tlds(order_by: [{ company_count: desc }, { tld: asc }]) { tld company_count }
   }`;
 
 type Result = {
-  companies: (CompanyProfile & { feedback?: FeedbackRow[]; provenance: Provenance[] })[];
+  companies: (CompanyProfile & {
+    feedback?: FeedbackRow[];
+    provenance: Provenance[];
+  })[];
   companies_aggregate: { aggregate: { count: number } };
   sources: SourceOption[];
+  website_tlds: TldOption[];
 } & Record<`${keyof FilterOptions}_options`, Record<string, string>[]>;
 
 export default async function CompaniesPage({
@@ -76,8 +100,9 @@ export default async function CompaniesPage({
   const review = params.review === "1";
 
   const data = await hasura<Result>(
-    COMPANIES,
+    companiesQuery(params),
     {
+      search: searchTerm(params),
       where: where(params),
       order_by: orderBy(params),
       limit: PAGE_SIZE,
@@ -89,12 +114,10 @@ export default async function CompaniesPage({
   const total = data.companies_aggregate.aggregate.count;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const options = Object.fromEntries(
-    (["legal_form", "register_status", "technology_field"] as const).map((f) => [
-      f,
-      data[`${f}_options`].map((row) => row[f]),
-    ]),
+    (["legal_form", "register_status", "technology_field"] as const).map(
+      (f) => [f, data[`${f}_options`].map((row) => row[f])],
+    ),
   ) as FilterOptions;
-
 
   // A shared link's columns win; otherwise the ones this browser chose last time.
   const cols = params.cols ?? (await cookies()).get(COLS_COOKIE)?.value;
@@ -112,7 +135,10 @@ export default async function CompaniesPage({
         className="inline-flex items-center gap-1 text-zinc-500 hover:text-zinc-900 hover:no-underline"
       >
         {label}{" "}
-        <span aria-hidden="true" className={active ? "text-zinc-900" : "text-zinc-500"}>
+        <span
+          aria-hidden="true"
+          className={active ? "text-zinc-900" : "text-zinc-500"}
+        >
           {active ? (sort.dir === "asc" ? "▲" : "▼") : "↕"}
         </span>
       </Link>
@@ -128,7 +154,12 @@ export default async function CompaniesPage({
   return (
     <>
       <h1 className="mb-6">Unternehmen</h1>
-      <Filters params={params} options={options} sources={data.sources} />
+      <Filters
+        params={params}
+        options={options}
+        sources={data.sources}
+        tlds={data.website_tlds}
+      />
       <div className="mb-3 flex items-center justify-between gap-4">
         <p className="text-sm text-zinc-500 tabular-nums" aria-live="polite">
           {formatNumber(total)} Treffer, Seite {pageNo} von {pages}
@@ -137,11 +168,22 @@ export default async function CompaniesPage({
           <Link
             href={withParams(params, { review: review ? undefined : "1" })}
             scroll={false}
-            aria-label={review ? "Werte bewerten beenden" : "Werte bewerten (✓/✗ in der Tabelle)"}
+            aria-label={
+              review
+                ? "Werte bewerten beenden"
+                : "Werte bewerten (✓/✗ in der Tabelle)"
+            }
             title={review ? "Werte bewerten beenden" : "Werte bewerten"}
             className={review ? TABLE_TOOL_ACTIVE : TABLE_TOOL}
           >
-            <svg viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth={1.75} aria-hidden="true">
+            <svg
+              viewBox="0 0 20 20"
+              className="size-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.75}
+              aria-hidden="true"
+            >
               <path d="M13.5 3.5l3 3L7 16H4v-3z" />
             </svg>
           </Link>
@@ -180,7 +222,9 @@ export default async function CompaniesPage({
           </thead>
           <tbody>
             {data.companies.map((c, index) => {
-              const votes = review ? tally(c.feedback ?? [], session.userId) : undefined;
+              const votes = review
+                ? tally(c.feedback ?? [], session.userId)
+                : undefined;
               return (
                 <tr key={c.id} className="group hover:bg-zinc-50">
                   <th
@@ -190,19 +234,30 @@ export default async function CompaniesPage({
                     <Link
                       href={withParams(
                         params,
-                        { page: undefined, pos: String((pageNo - 1) * PAGE_SIZE + index) },
+                        {
+                          page: undefined,
+                          pos: String((pageNo - 1) * PAGE_SIZE + index),
+                        },
                         `/companies/${c.id}`,
                       )}
                     >
                       {c.name}
                     </Link>
-                    <FieldCell company={c} column={NAME_COLUMN} votes={votes} provenance={c.provenance} withValue={false} />
+                    <FieldCell
+                      company={c}
+                      column={NAME_COLUMN}
+                      votes={votes}
+                      provenance={c.provenance}
+                      withValue={false}
+                    />
                   </th>
                   {listColumns.map((col) => (
                     <td
                       key={col.key}
                       className={
-                        col.numeric ? "text-right whitespace-nowrap tabular-nums" : undefined
+                        col.numeric
+                          ? "text-right whitespace-nowrap tabular-nums"
+                          : undefined
                       }
                     >
                       <FieldCell
@@ -220,10 +275,21 @@ export default async function CompaniesPage({
           </tbody>
         </table>
       </div>
-      <nav aria-label="Seiten" className="mt-6 flex flex-wrap items-center justify-between gap-4">
-        <Pager current={pageNo} pages={pages} href={(n) => withParams(params, { page: String(n) })} />
+      <nav
+        aria-label="Seiten"
+        className="mt-6 flex flex-wrap items-center justify-between gap-4"
+      >
+        <Pager
+          current={pageNo}
+          pages={pages}
+          href={(n) => withParams(params, { page: String(n) })}
+        />
         {pages > 1 && (
-          <Form action="/" scroll={false} className="flex items-center gap-2 text-sm text-zinc-500">
+          <Form
+            action="/"
+            scroll={false}
+            className="flex items-center gap-2 text-sm text-zinc-500"
+          >
             <KeepParams params={params} except={["page"]} />
             <label htmlFor="page-jump">Seite</label>
             {/* Keyed by page, so it shows the current page again after a pager link was used. */}
