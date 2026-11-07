@@ -52,6 +52,12 @@ describe("setVote", () => {
     expect(requests).toHaveLength(0);
   });
 
+  it("records a vote on the homepage's activity description (unternehmensdatenbank #152, V9)", async () => {
+    const requests = stubHasura({ SetVote: { insert_feedback_one: { verdict: "wrong" } } });
+    await setVote(ID, "activity_description", "Wir entwickeln Software.", form({ verdict: "wrong" }));
+    expect(requests[0].variables).toMatchObject({ field_name: "activity_description", verdict: "wrong" });
+  });
+
   it("sends nothing for an unknown field, a bad id or an unknown verdict", async () => {
     const requests = stubHasura({});
     await setVote(ID, "salary", "1", form({ verdict: "remove" }));

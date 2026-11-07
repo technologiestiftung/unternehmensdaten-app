@@ -210,3 +210,16 @@ describe("WZ (geschätzt) column", () => {
     expect(html).toContain('aria-label="falsch: 56"');
   });
 });
+
+describe("activity description column (unternehmensdatenbank #152)", () => {
+  it("asks Hasura for it and shows it as its own column", async () => {
+    const own = "Wir entwickeln Software für Stadtwerke.";
+    const requests = stubHasura(list(1, [company({ activity_description: own })]));
+    const html = await render({ cols: "business_purpose,activity_description" });
+    expect(requests[0].query).toMatch(/\bactivity_description\b/);
+    expect(headers(html)).toBe(3);
+    expect(html).toMatch(/<th scope="col"[^>]*>(<a[^>]*>)?Tätigkeit \(laut Website\)/);
+    expect(html).toMatch(/<th scope="col"[^>]*>(<a[^>]*>)?Tätigkeitsbeschreibung/);
+    expect(html).toContain(own);
+  });
+});
