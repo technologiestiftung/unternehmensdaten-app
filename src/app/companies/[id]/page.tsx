@@ -42,6 +42,12 @@ import { History } from "./history";
 import { ProvenanceInfo } from "./provenance-info";
 
 const FUNDINGS_PAGE_SIZE = 25;
+// How the contacts reader labelled an address (`website_contacts`): its kind sets its confidence.
+const EMAIL_KINDS: Record<string, string> = {
+  role: "Firmenadresse",
+  person: "Personenadresse",
+  other_domain: "andere Domain",
+};
 
 const COMPANY = `
   query Company($id: uuid!, $fundings_offset: Int!) {
@@ -50,7 +56,7 @@ const COMPANY = `
       fundings(order_by: [{ period_from: desc_nulls_last }, { fkz: asc }], limit: ${FUNDINGS_PAGE_SIZE}, offset: $fundings_offset) {
         fkz amount_eur period_from period_to topic ministry
       }
-      emails(order_by: { email: asc }) { email }
+      emails(order_by: [{ confidence: desc_nulls_last }, { email: asc }]) { email kind confidence }
       comments(order_by: { created_at: desc }) { id body author_id created_at }
       feedback { field_name value verdict correction author_id }
       provenance { ${PROVENANCE_FIELDS} }
@@ -84,7 +90,7 @@ type Company = Omit<CompanyProfile, "comments"> & {
     ministry: string | null;
   }[];
   // Stored, never resolved: every email any source read, shown for research (no votes, no history).
-  emails: { email: string }[];
+  emails: { email: string; kind: string | null; confidence: number | null }[];
   comments: {
     id: string;
     body: string;
@@ -179,11 +185,18 @@ export default async function CompanyPage({
       "E-Mail",
       c.emails.length ? (
         <ul className="m-0 list-none p-0">
-          {c.emails.map(({ email }) => (
+          {c.emails.map(({ email, kind, confidence }) => (
             <li key={email}>
               <a href={`mailto:${email}`} className="break-all">
                 {email}
               </a>
+              {(kind || confidence != null) && (
+                <span className="ml-2 text-xs text-zinc-500">
+                  {[kind && (EMAIL_KINDS[kind] ?? kind), confidence != null && `${Math.round(confidence * 100)} %`]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </span>
+              )}
             </li>
           ))}
         </ul>

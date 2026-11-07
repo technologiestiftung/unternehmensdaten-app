@@ -291,4 +291,19 @@ describe("Gründung", () => {
     expect(html.slice(html.indexOf("E-Mail</dt>")).match(/<dt/g)).toBeNull(); // no field after it in the list
     expect(votes.some(([, field]) => String(field).includes("email"))).toBe(false);
   });
+
+  it("labels each email with its kind and confidence, and an old one without a kind by its confidence only", async () => {
+    const emails = [
+      { email: "info@mitte.example", kind: "role", confidence: 0.6 },
+      { email: "dsb@agentur.example", kind: "other_domain", confidence: 0.2 },
+      { email: "alt@mitte.example", kind: null, confidence: 0.6 },
+    ];
+    const requests = stubHasura({ Company: { companies: [{ ...detail.companies[0], emails }] } });
+    const html = await render({});
+    expect(requests[0].query).toMatch(/emails\(order_by: \[\{ confidence: desc_nulls_last \}/);
+    const row = /E-Mail<\/dt><dd[^>]*>(.*?)<\/dd>/.exec(html)?.[1] ?? "";
+    expect(row).toContain("Firmenadresse · 60 %");
+    expect(row).toContain("andere Domain · 20 %");
+    expect(row).toMatch(/alt@mitte\.example<\/a><span[^>]*>60 %<\/span>/);
+  });
 });
