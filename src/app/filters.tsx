@@ -1,7 +1,7 @@
 "use client";
 
 import Form from "next/form";
-import { type ChangeEvent, type FormEvent, useRef } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import {
   ALL_STATUSES,
   DEFAULT_STATUS,
@@ -27,9 +27,13 @@ const asOptions = (values: string[]): MultiSelectOption[] =>
 // Pause after the last keystroke before a text field filters, so typing a word sends one request.
 const TYPING_DELAY_MS = 400;
 
-// A multi-select submits itself, after its own state has settled.
 /** The filter form's id, so the reset link above the table can clear its fields. */
 export const FILTERS_FORM_ID = "filters";
+
+// There is one filter form, so its pending typing submit lives here, where a reset can cancel it.
+let typingTimer: ReturnType<typeof setTimeout> | undefined;
+
+// A multi-select submits itself, after its own state has settled.
 
 const isInMultiSelect = (el: EventTarget) =>
   el instanceof Element && el.closest("[data-multi-select]") !== null;
@@ -49,12 +53,11 @@ export function Filters({
   sources: SourceOption[];
   tlds: TldOption[];
 }) {
-  const typingTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   // Dropdowns and checkboxes apply at once; text fields after a pause in typing (or on Enter).
   const handleChange = (event: ChangeEvent<HTMLFormElement>) => {
     if (isInMultiSelect(event.target)) return;
     if (event.target instanceof HTMLSelectElement || isCheckbox(event.target)) {
-      clearTimeout(typingTimer.current);
+      clearTimeout(typingTimer);
       event.currentTarget.requestSubmit();
     }
   };
@@ -66,8 +69,8 @@ export function Filters({
     )
       return;
     const form = event.currentTarget;
-    clearTimeout(typingTimer.current);
-    typingTimer.current = setTimeout(
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(
       () => form.requestSubmit(),
       TYPING_DELAY_MS,
     );
@@ -94,7 +97,7 @@ export function Filters({
       scroll={false}
       onChange={handleChange}
       onInput={handleInput}
-      onSubmit={() => clearTimeout(typingTimer.current)}
+      onSubmit={() => clearTimeout(typingTimer)}
       className="mb-6 grid grid-cols-1 gap-4 border-b border-zinc-200 pb-6 sm:grid-cols-2 lg:grid-cols-4"
     >
       {/* Sorting, columns and review mode survive a new search; the page does not. */}
@@ -197,6 +200,7 @@ export function Filters({
  * otherwise keep their values after a reset. Multi-selects are controlled and remount with the new URL.
  */
 export function clearFilterFields() {
+  clearTimeout(typingTimer);
   const form = document.getElementById(FILTERS_FORM_ID);
   if (!(form instanceof HTMLFormElement)) return;
   for (const field of Array.from(form.elements)) {
