@@ -35,6 +35,7 @@ export type CompanyProfile = {
   updated_at: string | null;
   /** The newest comment only; the detail page loads all of them. */
   comments?: { body: string }[];
+  emails?: { email: string }[];
 };
 
 /** The GraphQL selection for every column below. */
@@ -69,6 +70,8 @@ export type Column = {
   /** Long free text: clamped to a few lines in the table. */
   long?: boolean;
   numeric?: boolean;
+  /** Off until the user picks it in the column picker. */
+  hidden?: boolean;
   /** Several values per company (one per manager name): provenance is matched per value. */
   multiValue?: boolean;
   /**
@@ -165,6 +168,14 @@ export const COLUMNS: Column[] = [
   { key: "business_purpose", label: "Tätigkeitsbeschreibung", render: (c) => text(c.business_purpose), long: true, votes: (c) => one(c.business_purpose) },
   // The company's own words from its homepage, not the register's purpose: its own column, labelled as such.
   { key: "activity_description", label: "Tätigkeit (laut Website)", render: (c) => text(c.activity_description), long: true, votes: (c) => one(c.activity_description) },
+  // Stored, never resolved: no votes, no provenance. Off by default: a list shows many companies' addresses at once.
+  {
+    key: "emails",
+    label: "E-Mail",
+    render: (c) => (c.emails?.length ? c.emails.map(({ email }) => email).join(", ") : "–"),
+    long: true,
+    hidden: true,
+  },
   { key: "comment", label: "Kommentar", render: (c) => c.comments?.[0]?.body ?? "–", long: true },
   {
     key: "deeptech",

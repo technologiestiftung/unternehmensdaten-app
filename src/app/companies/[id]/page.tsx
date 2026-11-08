@@ -81,7 +81,7 @@ const neighboursQuery = (list: ListParams) => `
 
 const NAV = "text-sm text-zinc-500 hover:text-zinc-900 hover:no-underline";
 
-type Company = Omit<CompanyProfile, "comments"> & {
+type Company = Omit<CompanyProfile, "comments" | "emails"> & {
   fundings: {
     fkz: string;
     amount_eur: number | null;
@@ -190,7 +190,8 @@ export default async function CompanyPage({
     </>,
   ] as const);
   const fields = [
-    ...COLUMNS.filter((col) => col.key !== "comment").flatMap((col) => [
+    // Comments and emails have their own, richer rows below.
+    ...COLUMNS.filter((col) => col.key !== "comment" && col.key !== "emails").flatMap((col) => [
       [col.label, cell(col)] as const,
       ...(col.key === "register_status" && successor ? [successor] : []),
     ]),

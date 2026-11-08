@@ -97,9 +97,9 @@ describe("company list", () => {
     expect(html).not.toMatch(/<th scope="col"[^>]*>(<a[^>]*>)?Rechtsform/);
   });
 
-  it("shows every column when cols names none that exist", async () => {
+  it("shows every column but the hidden ones when cols names none that exist", async () => {
     stubHasura(list(1));
-    expect(headers(await render({ cols: "salary" }))).toBe(COLUMNS.length + 1);
+    expect(headers(await render({ cols: "salary" }))).toBe(COLUMNS.filter((col) => !col.hidden).length + 1);
   });
 
   it("offers a page number field that keeps the filters", async () => {

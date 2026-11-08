@@ -5,7 +5,10 @@
  * passed as GraphQL variables, never spliced into the query text.
  */
 
-/** Columns the list can be sorted by: URL value → view column. */
+/**
+ * Columns the list can be sorted by: URL value → view column. A dotted path sorts by a relationship's
+ * aggregate (`emails_aggregate.max.email`), which Hasura allows only where the role may aggregate.
+ */
 export const SORTABLE = {
   name: "name",
   // shortcut: sorts as text, so HRB 121291 comes before HRB 92123; a numeric order needs a number column in the Data Hub.
@@ -20,6 +23,13 @@ export const SORTABLE = {
   legal_form: "legal_form",
   technology_field: "technology_field",
   website: "website",
+  management: "management",
+  business_purpose: "business_purpose",
+  activity_description: "activity_description",
+  // shortcut: the alphabetically first address, not the one shown first; good enough to bring companies with an email together.
+  emails: "emails_aggregate.min.email",
+  // The newest comment's date: the cell shows the newest comment.
+  comment: "comments_aggregate.max.created_at",
   deeptech: "deeptech_confidence",
   is_ai: "is_ai",
   register_status: "register_status",
@@ -205,11 +215,13 @@ export function sortOf(params: ListParams): {
  * Empty values sort last in either direction, so "Umsatz absteigend" starts with real numbers. Sorting
  * by relevance is no `order_by` at all: the rows keep the search function's order.
  */
-export function orderBy(params: ListParams): Record<string, string>[] {
+export function orderBy(params: ListParams): Record<string, unknown>[] {
   const { key, dir } = sortOf(params);
   // shortcut: relies on Hasura adding no ORDER BY of its own, which Postgres then keeps; a score column would make it explicit.
   if (!key) return [];
-  const primary = { [SORTABLE[key]]: `${dir}_nulls_last` };
+  const primary = SORTABLE[key]
+    .split(".")
+    .reduceRight<unknown>((inner, part) => ({ [part]: inner }), `${dir}_nulls_last`) as Record<string, unknown>;
   return key === "name"
     ? [primary, { id: "asc" }]
     : [primary, { name: "asc" }, { id: "asc" }];
@@ -341,12 +353,12 @@ export function neighbours(
   return { prev: at(index - 1), next: at(index + 1) };
 }
 
-/** The columns `cols` asks for, in their usual order; all of them when it names none that exist. */
-export function visibleColumns<T extends { key: string }>(
+/** The columns `cols` asks for, in their usual order; all but the hidden ones when it names none that exist. */
+export function visibleColumns<T extends { key: string; hidden?: boolean }>(
   columns: T[],
   cols: string | undefined,
 ): T[] {
   const wanted = new Set(cols?.split(",").map(currentKey));
   const shown = columns.filter((col) => wanted.has(col.key));
-  return shown.length > 0 ? shown : columns;
+  return shown.length > 0 ? shown : columns.filter((col) => !col.hidden);
 }
