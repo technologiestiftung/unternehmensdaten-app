@@ -34,7 +34,6 @@ export const FILTERS_FORM_ID = "filters";
 let typingTimer: ReturnType<typeof setTimeout> | undefined;
 
 // A multi-select submits itself, after its own state has settled.
-
 const isInMultiSelect = (el: EventTarget) =>
   el instanceof Element && el.closest("[data-multi-select]") !== null;
 
@@ -70,10 +69,7 @@ export function Filters({
       return;
     const form = event.currentTarget;
     clearTimeout(typingTimer);
-    typingTimer = setTimeout(
-      () => form.requestSubmit(),
-      TYPING_DELAY_MS,
-    );
+    typingTimer = setTimeout(() => form.requestSubmit(), TYPING_DELAY_MS);
   };
   const multiSelect = (
     name: "legal_form" | "technology_field" | "source" | "tld",
