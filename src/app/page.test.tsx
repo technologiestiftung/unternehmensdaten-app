@@ -58,6 +58,14 @@ describe("company list", () => {
     });
   });
 
+  it("offers \"Filter zurücksetzen\" next to the hit count only while a filter is set, keeping the view settings", async () => {
+    stubHasura(list(120));
+    expect(await render({ sort: "revenue", page: "2", cols: "revenue" })).not.toContain("Filter zurücksetzen");
+    stubHasura(list(120));
+    const html = await render({ fund: "any", cols: "revenue", review: "1" });
+    expect(html).toMatch(/<a [^>]*href="\/\?cols=revenue&amp;review=1"[^>]*>Filter zurücksetzen<\/a>/);
+  });
+
   it("shows the hit count and the filter options from the database", async () => {
     stubHasura(list(120));
     const html = await render({});

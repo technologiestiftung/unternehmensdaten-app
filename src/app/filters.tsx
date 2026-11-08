@@ -1,13 +1,7 @@
 "use client";
 
 import Form from "next/form";
-import Link from "next/link";
-import {
-  type ChangeEvent,
-  type FormEvent,
-  type MouseEvent,
-  useRef,
-} from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import {
   ALL_STATUSES,
   DEFAULT_STATUS,
@@ -15,7 +9,6 @@ import {
   type ListParams,
   NO_WEBSITE,
   statusFilter,
-  withParams,
 } from "@/lib/query";
 import { formatNumber } from "@/lib/format";
 import { MultiSelect, type MultiSelectOption } from "./multi-select";
@@ -33,6 +26,12 @@ const asOptions = (values: string[]): MultiSelectOption[] =>
 
 // Pause after the last keystroke before a text field filters, so typing a word sends one request.
 const TYPING_DELAY_MS = 400;
+
+/** The filter form's id, so the reset link above the table can clear its fields. */
+export const FILTERS_FORM_ID = "filters";
+
+// There is one filter form, so its pending typing submit lives here, where a reset can cancel it.
+let typingTimer: ReturnType<typeof setTimeout> | undefined;
 
 // A multi-select submits itself, after its own state has settled.
 const isInMultiSelect = (el: EventTarget) =>
@@ -53,12 +52,11 @@ export function Filters({
   sources: SourceOption[];
   tlds: TldOption[];
 }) {
-  const typingTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   // Dropdowns and checkboxes apply at once; text fields after a pause in typing (or on Enter).
   const handleChange = (event: ChangeEvent<HTMLFormElement>) => {
     if (isInMultiSelect(event.target)) return;
     if (event.target instanceof HTMLSelectElement || isCheckbox(event.target)) {
-      clearTimeout(typingTimer.current);
+      clearTimeout(typingTimer);
       event.currentTarget.requestSubmit();
     }
   };
@@ -70,28 +68,8 @@ export function Filters({
     )
       return;
     const form = event.currentTarget;
-    clearTimeout(typingTimer.current);
-    typingTimer.current = setTimeout(
-      () => form.requestSubmit(),
-      TYPING_DELAY_MS,
-    );
-  };
-  // The form stays mounted across client navigation, so edited fields would keep their values after a reset.
-  const clearFields = (event: MouseEvent<HTMLAnchorElement>) => {
-    clearTimeout(typingTimer.current);
-    for (const field of Array.from(
-      event.currentTarget.closest("form")?.elements ?? [],
-    )) {
-      // Multi-selects are controlled and remount with the new URL.
-      if (isInMultiSelect(field)) continue;
-      if (isCheckbox(field)) field.checked = false;
-      else if (
-        field instanceof HTMLSelectElement ||
-        (field instanceof HTMLInputElement && field.type !== "hidden")
-      ) {
-        field.value = "";
-      }
-    }
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(() => form.requestSubmit(), TYPING_DELAY_MS);
   };
   const multiSelect = (
     name: "legal_form" | "technology_field" | "source" | "tld",
@@ -109,12 +87,13 @@ export function Filters({
   );
   return (
     <Form
+      id={FILTERS_FORM_ID}
       role="search"
       action="/"
       scroll={false}
       onChange={handleChange}
       onInput={handleInput}
-      onSubmit={() => clearTimeout(typingTimer.current)}
+      onSubmit={() => clearTimeout(typingTimer)}
       className="mb-6 grid grid-cols-1 gap-4 border-b border-zinc-200 pb-6 sm:grid-cols-2 lg:grid-cols-4"
     >
       {/* Sorting, columns and review mode survive a new search; the page does not. */}
@@ -204,20 +183,30 @@ export function Filters({
           ))}
         </select>
       </label>
-      <div className="flex items-end justify-end">
-        {/* Hidden, but lets Enter in a text field submit when JavaScript is off. */}
-        <button type="submit" hidden>
-          Filtern
-        </button>
-        {/* Clears the filters; columns and review mode are view settings and stay. */}
-        <Link
-          href={withParams({}, { cols: params.cols, review: params.review })}
-          onClick={clearFields}
-          className="py-2 text-sm text-zinc-500 hover:text-zinc-900"
-        >
-          Zurücksetzen
-        </Link>
-      </div>
+      {/* Hidden, but lets Enter in a text field submit when JavaScript is off. */}
+      <button type="submit" hidden>
+        Filtern
+      </button>
     </Form>
   );
+}
+
+/**
+ * Clears the filter form's fields. It stays mounted across client navigation, so edited fields would
+ * otherwise keep their values after a reset. Multi-selects are controlled and remount with the new URL.
+ */
+export function clearFilterFields() {
+  clearTimeout(typingTimer);
+  const form = document.getElementById(FILTERS_FORM_ID);
+  if (!(form instanceof HTMLFormElement)) return;
+  for (const field of Array.from(form.elements)) {
+    if (isInMultiSelect(field)) continue;
+    if (isCheckbox(field)) field.checked = false;
+    else if (
+      field instanceof HTMLSelectElement ||
+      (field instanceof HTMLInputElement && field.type !== "hidden")
+    ) {
+      field.value = "";
+    }
+  }
 }

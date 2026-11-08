@@ -39,6 +39,7 @@ import {
 import { TABLE_TOOL, TABLE_TOOL_ACTIVE } from "./table-tool";
 import { KeepParams } from "./keep-params";
 import { Pager } from "./pager";
+import { ResetFilters } from "./reset-filters";
 
 /** Long single-valued text is clamped; the ⓘ and ✓/✗ stay outside the clamp so they are not cut off. */
 const LIST_COLUMNS: Column[] = COLUMNS.map((col) =>
@@ -113,6 +114,15 @@ export default async function CompaniesPage({
     session.accessToken,
   );
   const total = data.companies_aggregate.aggregate.count;
+  // Anything beyond the view settings (page, sort, columns, review mode) is a filter.
+  const isFiltered =
+    withParams(params, {
+      page: undefined,
+      sort: undefined,
+      dir: undefined,
+      cols: undefined,
+      review: undefined,
+    }) !== "/";
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const options = Object.fromEntries(
     (["legal_form", "register_status", "technology_field"] as const).map(
@@ -164,6 +174,18 @@ export default async function CompaniesPage({
       <div className="mb-3 flex items-center justify-between gap-4">
         <p className="text-sm text-zinc-500 tabular-nums" aria-live="polite">
           {formatNumber(total)} Treffer, Seite {pageNo} von {pages}
+          {isFiltered && (
+            <>
+              {" · "}
+              {/* Columns and review mode are view settings and stay. */}
+              <ResetFilters
+                href={withParams(
+                  {},
+                  { cols: params.cols, review: params.review },
+                )}
+              />
+            </>
+          )}
         </p>
         <span className="flex gap-1">
           <Link
