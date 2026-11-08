@@ -223,3 +223,39 @@ describe("activity description column (unternehmensdatenbank #152)", () => {
     expect(html).toContain(own);
   });
 });
+
+describe("sortable columns and the E-Mail column", () => {
+  const allCols = COLUMNS.map((col) => col.key).join(",");
+
+  it("makes every column header a sort link", async () => {
+    stubHasura(list(1));
+    const html = await render({ cols: allCols });
+    const ths = [...html.matchAll(/<th scope="col"[^>]*>(.*?)<\/th>/g)].map((m) => m[1]);
+    expect(ths).toHaveLength(COLUMNS.length + 1);
+    for (const th of ths) expect(th).toMatch(/^<a [^>]*href="[^"]*sort=/);
+  });
+
+  it("asks Hasura to sort by the first email and by the newest comment's date", async () => {
+    const requests = stubHasura(list(1));
+    await render({ sort: "emails" });
+    await render({ sort: "comment", dir: "desc" });
+    expect(requests[0].variables.order_by).toEqual([
+      { emails_aggregate: { min: { email: "asc_nulls_last" } } },
+      { name: "asc" },
+      { id: "asc" },
+    ]);
+    expect(requests[1].variables.order_by[0]).toEqual({ comments_aggregate: { max: { created_at: "desc_nulls_last" } } });
+  });
+
+  it("hides the E-Mail column by default and shows the addresses once picked", async () => {
+    const withEmails = { Companies: { ...list(1).Companies, companies: [{ ...company(), comments: [], provenance: [], emails: [{ email: "info@example.org" }, { email: "kontakt@example.org" }] }] } };
+    stubHasura(withEmails);
+    const hidden = await render({});
+    expect(hidden).not.toMatch(/<th scope="col"[^>]*>(<a[^>]*>)?E-Mail/);
+    expect(hidden).not.toContain("info@example.org");
+    stubHasura(withEmails);
+    const shown = await render({ cols: "emails" });
+    expect(shown).toMatch(/<th scope="col"[^>]*>(<a[^>]*>)?E-Mail/);
+    expect(shown).toContain("info@example.org, kontakt@example.org");
+  });
+});
