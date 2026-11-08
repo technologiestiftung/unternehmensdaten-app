@@ -65,6 +65,7 @@ const companiesQuery = (params: ListParams) => `
     ${listField(params, "companies")}where: $where, order_by: $order_by, limit: $limit, offset: $offset) {
       ${PROFILE_FIELDS}
       comments(limit: 1, order_by: { created_at: desc }) { body }
+      emails(order_by: [{ confidence: desc_nulls_last }, { email: asc }]) { email }
       feedback @include(if: $review) { field_name value verdict author_id }
       provenance { ${PROVENANCE_FIELDS} }
     }

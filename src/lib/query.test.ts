@@ -20,6 +20,22 @@ describe("sortOf / orderBy", () => {
     expect(orderBy({})).toEqual([{ name: "asc_nulls_last" }, { id: "asc" }]);
   });
 
+  it("sorts by a relationship's aggregate through a dotted path", () => {
+    expect(orderBy({ sort: "emails" })).toEqual([
+      { emails_aggregate: { min: { email: "asc_nulls_last" } } },
+      { name: "asc" },
+      { id: "asc" },
+    ]);
+    expect(orderBy({ sort: "comment", dir: "desc" })[0]).toEqual({
+      comments_aggregate: { max: { created_at: "desc_nulls_last" } },
+    });
+  });
+
+  it("sorts the long text columns too", () => {
+    expect(orderBy({ sort: "management" })[0]).toEqual({ management: "asc_nulls_last" });
+    expect(orderBy({ sort: "activity_description" })[0]).toEqual({ activity_description: "asc_nulls_last" });
+  });
+
   it("maps a column to its view field, nulls last, name then id as tie-break", () => {
     expect(orderBy({ sort: "fundings", dir: "desc" })).toEqual([
       { funding_total_eur: "desc_nulls_last" },
@@ -29,7 +45,7 @@ describe("sortOf / orderBy", () => {
   });
 
   it("ignores unknown sort fields and directions", () => {
-    expect(sortOf({ sort: "comment", dir: "sideways" })).toEqual({ key: "name", dir: "asc" });
+    expect(sortOf({ sort: "salary", dir: "sideways" })).toEqual({ key: "name", dir: "asc" });
     expect(sortOf({ sort: "__proto__" })).toEqual({ key: "name", dir: "asc" });
   });
 });
@@ -169,6 +185,9 @@ describe("visibleColumns", () => {
     expect(visibleColumns(columns, undefined)).toEqual(columns);
     expect(visibleColumns(columns, "")).toEqual(columns);
     expect(visibleColumns(columns, "salary,__proto__")).toEqual(columns);
+    const withHidden = [{ key: "revenue" }, { key: "emails", hidden: true }];
+    expect(visibleColumns(withHidden, undefined)).toEqual([{ key: "revenue" }]);
+    expect(visibleColumns(withHidden, "emails")).toEqual([{ key: "emails", hidden: true }]);
   });
 
   it("reads the old key established_at, saved before the column became established_year", () => {
