@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { listParams, where } from "@/lib/query";
-import { Filters } from "./filters";
+import { clearFilterFields, Filters, FILTERS_FORM_ID } from "./filters";
 
 const options = { legal_form: ["GmbH"], register_status: ["active", "dissolved"], technology_field: [] };
 
@@ -51,5 +51,79 @@ describe("Filters → where, as a typed search submits the form", () => {
 
   it("a typed name lists only active companies", () => {
     expect(statusConditions(typed("Berghain OstGut"))).toEqual([{ register_status: { _eq: "active" } }]);
+  });
+});
+
+// The few DOM classes the filter form's handlers check with instanceof (vitest runs in node, no DOM).
+class FakeElement {
+  constructor(private multiSelect = false) {}
+  closest(selector: string) {
+    return selector === "[data-multi-select]" && this.multiSelect ? this : null;
+  }
+}
+class FakeInput extends FakeElement {
+  checked = false;
+  constructor(public type: string, public value = "", multiSelect = false) {
+    super(multiSelect);
+  }
+}
+class FakeSelect extends FakeElement {
+  constructor(public value = "") {
+    super();
+  }
+}
+class FakeForm extends FakeElement {
+  requestSubmit = vi.fn();
+  constructor(public elements: FakeElement[]) {
+    super();
+  }
+}
+
+describe("Filter zurücksetzen (clearFilterFields)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  const setUp = () => {
+    const search = new FakeInput("text", "Berghain");
+    const checkbox = new FakeInput("checkbox");
+    checkbox.checked = true;
+    const select = new FakeSelect("dissolved");
+    const hiddenSort = new FakeInput("hidden", "revenue");
+    const multiSelectInput = new FakeInput("text", "GmbH", true);
+    const form = new FakeForm([search, checkbox, select, hiddenSort, multiSelectInput]);
+    vi.stubGlobal("Element", FakeElement);
+    vi.stubGlobal("HTMLInputElement", FakeInput);
+    vi.stubGlobal("HTMLSelectElement", FakeSelect);
+    vi.stubGlobal("HTMLFormElement", FakeForm);
+    vi.stubGlobal("document", { getElementById: (id: string) => (id === FILTERS_FORM_ID ? form : null) });
+    return { form, search, checkbox, select, hiddenSort, multiSelectInput };
+  };
+
+  it("empties text fields, selects and checkboxes, but leaves hidden view settings and multi-selects", () => {
+    const { search, checkbox, select, hiddenSort, multiSelectInput } = setUp();
+    clearFilterFields();
+    expect([search.value, checkbox.checked, select.value]).toEqual(["", false, ""]);
+    expect([hiddenSort.value, multiSelectInput.value]).toEqual(["revenue", "GmbH"]);
+  });
+
+  it("cancels a typing submit still pending, so the old search is not sent after the reset", () => {
+    vi.useFakeTimers();
+    const { form, search } = setUp();
+    const element = Filters({ params: {}, options, sources: [], tlds: [] });
+    element.props.onInput({ target: search, currentTarget: form });
+    vi.advanceTimersByTime(100);
+    clearFilterFields();
+    vi.advanceTimersByTime(1000);
+    expect(form.requestSubmit).not.toHaveBeenCalled();
+  });
+
+  it("without a reset, the typed search does submit after the pause (the timer the reset must cancel)", () => {
+    vi.useFakeTimers();
+    const { form, search } = setUp();
+    Filters({ params: {}, options, sources: [], tlds: [] }).props.onInput({ target: search, currentTarget: form });
+    vi.advanceTimersByTime(1000);
+    expect(form.requestSubmit).toHaveBeenCalledTimes(1);
   });
 });
