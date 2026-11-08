@@ -244,7 +244,7 @@ describe("sortable columns and the E-Mail column", () => {
       { name: "asc" },
       { id: "asc" },
     ]);
-    expect(requests[1].variables.order_by[0]).toEqual({ comments_aggregate: { max: { created_at: "desc_nulls_last" } } });
+    expect((requests[1].variables.order_by as unknown[])[0]).toEqual({ comments_aggregate: { max: { created_at: "desc_nulls_last" } } });
   });
 
   it("hides the E-Mail column by default and shows the addresses once picked", async () => {
