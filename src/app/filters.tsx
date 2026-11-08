@@ -1,13 +1,7 @@
 "use client";
 
 import Form from "next/form";
-import Link from "next/link";
-import {
-  type ChangeEvent,
-  type FormEvent,
-  type MouseEvent,
-  useRef,
-} from "react";
+import { type ChangeEvent, type FormEvent, useRef } from "react";
 import {
   ALL_STATUSES,
   DEFAULT_STATUS,
@@ -15,7 +9,6 @@ import {
   type ListParams,
   NO_WEBSITE,
   statusFilter,
-  withParams,
 } from "@/lib/query";
 import { formatNumber } from "@/lib/format";
 import { MultiSelect, type MultiSelectOption } from "./multi-select";
@@ -35,6 +28,9 @@ const asOptions = (values: string[]): MultiSelectOption[] =>
 const TYPING_DELAY_MS = 400;
 
 // A multi-select submits itself, after its own state has settled.
+/** The filter form's id, so the reset link above the table can clear its fields. */
+export const FILTERS_FORM_ID = "filters";
+
 const isInMultiSelect = (el: EventTarget) =>
   el instanceof Element && el.closest("[data-multi-select]") !== null;
 
@@ -76,23 +72,6 @@ export function Filters({
       TYPING_DELAY_MS,
     );
   };
-  // The form stays mounted across client navigation, so edited fields would keep their values after a reset.
-  const clearFields = (event: MouseEvent<HTMLAnchorElement>) => {
-    clearTimeout(typingTimer.current);
-    for (const field of Array.from(
-      event.currentTarget.closest("form")?.elements ?? [],
-    )) {
-      // Multi-selects are controlled and remount with the new URL.
-      if (isInMultiSelect(field)) continue;
-      if (isCheckbox(field)) field.checked = false;
-      else if (
-        field instanceof HTMLSelectElement ||
-        (field instanceof HTMLInputElement && field.type !== "hidden")
-      ) {
-        field.value = "";
-      }
-    }
-  };
   const multiSelect = (
     name: "legal_form" | "technology_field" | "source" | "tld",
     label: string,
@@ -109,6 +88,7 @@ export function Filters({
   );
   return (
     <Form
+      id={FILTERS_FORM_ID}
       role="search"
       action="/"
       scroll={false}
@@ -204,20 +184,29 @@ export function Filters({
           ))}
         </select>
       </label>
-      <div className="flex items-end justify-end">
-        {/* Hidden, but lets Enter in a text field submit when JavaScript is off. */}
-        <button type="submit" hidden>
-          Filtern
-        </button>
-        {/* Clears the filters; columns and review mode are view settings and stay. */}
-        <Link
-          href={withParams({}, { cols: params.cols, review: params.review })}
-          onClick={clearFields}
-          className="py-2 text-sm text-zinc-500 hover:text-zinc-900"
-        >
-          Zurücksetzen
-        </Link>
-      </div>
+      {/* Hidden, but lets Enter in a text field submit when JavaScript is off. */}
+      <button type="submit" hidden>
+        Filtern
+      </button>
     </Form>
   );
+}
+
+/**
+ * Clears the filter form's fields. It stays mounted across client navigation, so edited fields would
+ * otherwise keep their values after a reset. Multi-selects are controlled and remount with the new URL.
+ */
+export function clearFilterFields() {
+  const form = document.getElementById(FILTERS_FORM_ID);
+  if (!(form instanceof HTMLFormElement)) return;
+  for (const field of Array.from(form.elements)) {
+    if (isInMultiSelect(field)) continue;
+    if (isCheckbox(field)) field.checked = false;
+    else if (
+      field instanceof HTMLSelectElement ||
+      (field instanceof HTMLInputElement && field.type !== "hidden")
+    ) {
+      field.value = "";
+    }
+  }
 }
