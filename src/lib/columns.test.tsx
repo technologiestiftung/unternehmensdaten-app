@@ -2,6 +2,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { company } from "@/test/hasura-stub";
 import { COLUMNS, foundingText, shortRegisterNumber } from "./columns";
+import { ConfidenceBadge } from "./confidence";
+import { fieldLabel, shownValues, voteTarget } from "./history";
 
 const fundings = COLUMNS.find((col) => col.key === "fundings")!;
 const text = (html: string) => html.replace(/<[^>]+>/g, "").replace(/ /g, " ");
@@ -73,5 +75,40 @@ describe("Gründung", () => {
     // A person corrected the year: the old date no longer agrees with it, so only the year is shown.
     expect(foundingText({ established_at: "2010-05-12", established_year: 2012 })).toBe("2012");
     expect(foundingText({ established_at: null, established_year: null })).toBe("–");
+  });
+});
+
+// Bands as decided in unternehmensdatenbank #183: green >= 80 %, yellow 50-79 %, red < 50 %.
+describe("confidence bands at their edges (#183)", () => {
+  it.each([
+    [1, "green", "100 %"],
+    [0.8, "green", "80 %"],
+    [0.79, "yellow", "79 %"],
+    [0.5, "yellow", "50 %"],
+    [0.49, "red", "49 %"],
+    [0.05, "red", "5 %"],
+  ])("%s is %s and reads %s", (value, color, label) => {
+    const html = renderToStaticMarkup(<ConfidenceBadge value={value} />);
+    expect(html).toContain(`bg-${color}-100`);
+    expect(html).toContain(`>${label}<`);
+  });
+});
+
+describe("history of the fields inside a merged row (#183)", () => {
+  const c = company({ wz_code: "62.01", wz_division_estimated: "56", business_purpose: "Register", activity_description: "Homepage" });
+
+  it("names wz_code and business_purpose by their merged row", () => {
+    expect(fieldLabel("wz_code")).toBe("WZ");
+    expect(fieldLabel("wz_division_estimated")).toBe("WZ");
+    expect(fieldLabel("business_purpose")).toBe("Tätigkeit");
+  });
+
+  it("votes on each field's own raw value, not on the value the row shows", () => {
+    expect(shownValues("wz_code", c)).toEqual(["62.01"]);
+    expect(shownValues("wz_division_estimated", c)).toEqual(["56"]);
+    expect(shownValues("business_purpose", c)).toEqual(["Register"]);
+    expect(shownValues("activity_description", c)).toEqual(["Homepage"]);
+    expect(voteTarget("business_purpose", c)).toBe("Register");
+    expect(voteTarget("wz_division_estimated", c)).toBe("56");
   });
 });
