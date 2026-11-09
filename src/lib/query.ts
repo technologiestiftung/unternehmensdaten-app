@@ -6,8 +6,9 @@
  */
 
 /**
- * Columns the list can be sorted by: URL value → view column. A dotted path sorts by a relationship's
- * aggregate (`emails_aggregate.max.email`), which Hasura allows only where the role may aggregate.
+ * Columns the list can be sorted by: URL value → view column. Only columns of the stored profile: a sort
+ * by a relationship's aggregate (first email, newest comment) computes it for every company, which ran
+ * for hours on the full list. E-Mail and Kommentar sort once the profile stores such a value.
  */
 export const SORTABLE = {
   name: "name",
@@ -24,10 +25,6 @@ export const SORTABLE = {
   website: "website",
   management: "management",
   activity_description: "activity_description",
-  // shortcut: the alphabetically first address, not the one shown first; good enough to bring companies with an email together.
-  emails: "emails_aggregate.min.email",
-  // The newest comment's date: the cell shows the newest comment.
-  comment: "comments_aggregate.max.created_at",
   deeptech: "deeptech_confidence",
   is_ai: "is_ai",
   register_status: "register_status",
@@ -215,13 +212,11 @@ export function sortOf(params: ListParams): {
  * Empty values sort last in either direction, so "Umsatz absteigend" starts with real numbers. Sorting
  * by relevance is no `order_by` at all: the rows keep the search function's order.
  */
-export function orderBy(params: ListParams): Record<string, unknown>[] {
+export function orderBy(params: ListParams): Record<string, string>[] {
   const { key, dir } = sortOf(params);
   // shortcut: relies on Hasura adding no ORDER BY of its own, which Postgres then keeps; a score column would make it explicit.
   if (!key) return [];
-  const primary = SORTABLE[key]
-    .split(".")
-    .reduceRight<unknown>((inner, part) => ({ [part]: inner }), `${dir}_nulls_last`) as Record<string, unknown>;
+  const primary = { [SORTABLE[key]]: `${dir}_nulls_last` };
   return key === "name"
     ? [primary, { id: "asc" }]
     : [primary, { name: "asc" }, { id: "asc" }];
