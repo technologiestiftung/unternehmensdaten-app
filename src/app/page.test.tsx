@@ -220,16 +220,17 @@ describe("WZ column", () => {
   });
 });
 
-describe("activity description column (unternehmensdatenbank #152)", () => {
-  it("asks Hasura for it and shows it as its own column", async () => {
+describe("Tätigkeit column (unternehmensdatenbank #152, #183)", () => {
+  it("asks Hasura for both texts and shows one column, the homepage's words first", async () => {
     const own = "Wir entwickeln Software für Stadtwerke.";
-    const requests = stubHasura(list(1, [company({ activity_description: own })]));
-    const html = await render({ cols: "business_purpose,activity_description" });
+    const requests = stubHasura(list(1, [company({ activity_description: own, business_purpose: "Gegenstand: Software" })]));
+    const html = await render({ cols: "activity_description" });
     expect(requests[0].query).toMatch(/\bactivity_description\b/);
-    expect(headers(html)).toBe(3);
-    expect(html).toMatch(/<th scope="col"[^>]*>(<a[^>]*>)?Tätigkeit \(laut Website\)/);
-    expect(html).toMatch(/<th scope="col"[^>]*>(<a[^>]*>)?Tätigkeitsbeschreibung/);
+    expect(requests[0].query).toMatch(/\bbusiness_purpose\b/);
+    expect(headers(html)).toBe(2);
+    expect(html).toMatch(/<th scope="col"[^>]*>(<a[^>]*>)?Tätigkeit[ <]/);
     expect(html).toContain(own);
+    expect(html).not.toContain("Gegenstand: Software");
   });
 });
 

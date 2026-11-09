@@ -13,10 +13,10 @@ const BAND_CLASS = {
 /** The shown value's confidence: an official WZ code is certain, else its source's confidence. */
 export function confidenceOf(company: CompanyProfile, column: Column, rows: Provenance[]): number | null {
   if (column.key === "wz_division_estimated" && company.wz_code) return 1;
+  if (column.key === "deeptech" && company.deeptech_confidence != null) return company.deeptech_confidence;
   const field = column.field?.(company) ?? column.key;
   const found = rows.filter((row) => row.field_name === field && row.confidence != null).map((row) => row.confidence!);
-  if (found.length) return Math.max(...found);
-  return column.key === "deeptech" ? company.deeptech_confidence : null;
+  return found.length ? Math.max(...found) : null;
 }
 
 /** The percent as text next to the color, so the color is never the only signal (BITV). */

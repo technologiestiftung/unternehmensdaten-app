@@ -21,10 +21,8 @@ export const SORTABLE = {
   address: "address",
   legal_form: "legal_form",
   technology_field: "technology_field",
-  purpose_field: "purpose_field",
   website: "website",
   management: "management",
-  business_purpose: "business_purpose",
   activity_description: "activity_description",
   // shortcut: the alphabetically first address, not the one shown first; good enough to bring companies with an email together.
   emails: "emails_aggregate.min.email",

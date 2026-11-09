@@ -21,8 +21,6 @@ export type CompanyProfile = {
   address: string | null;
   legal_form: string | null;
   technology_field: string | null;
-  /** One of the same 77 fields, from the register's business purpose (unternehmensdatenbank #180, #183). */
-  purpose_field: string | null;
   website: string | null;
   management: string | null;
   business_purpose: string | null;
@@ -43,7 +41,7 @@ export type CompanyProfile = {
 /** The GraphQL selection for every column below. */
 export const PROFILE_FIELDS = `
   id name employee_count revenue funding_count funding_total_eur wz_code wz_division_estimated established_at established_year
-  address legal_form technology_field purpose_field website management business_purpose activity_description
+  address legal_form technology_field website management business_purpose activity_description
   deeptech_class deeptech_confidence is_ai register_status registration_number updated_at`;
 
 export const text = (value: string | null) => value ?? "–";
@@ -87,6 +85,9 @@ export type Column = {
   /** A guess shown at any confidence: the cell shows its confidence with a color (#183). */
   confidence?: boolean;
 };
+
+/** The four DeepTech classes as stored (#183), written for people. */
+const DEEPTECH_CLASSES: Record<string, string> = { "non-tech": "Non-Tech", tech: "Tech", hybrid: "Hybrid", "deep tech": "Deep Tech" };
 
 /** One vote on the field's raw value, or on its absence. */
 const one = (value: string | number | boolean | null) =>
@@ -163,13 +164,6 @@ export const COLUMNS: Column[] = [
     votes: (c) => one(c.technology_field),
     confidence: true,
   },
-  // What the register's business purpose says, not the website: a different question (unternehmensdatenbank CLAUDE.md, three columns).
-  {
-    key: "purpose_field",
-    label: "Technologiefeld laut Zweck",
-    render: (c) => explained(c.purpose_field, c.purpose_field && technologyFieldAnchor(c.purpose_field)),
-    confidence: true,
-  },
   {
     key: "website",
     label: "Website",
@@ -184,9 +178,16 @@ export const COLUMNS: Column[] = [
     votes: (c) => one(c.website),
   },
   { key: "management", label: "Geschäftsführung", render: (c) => text(c.management), long: true, multiValue: true, votes: (c) => c.management ? c.management.split(MANAGEMENT_SEPARATOR) : [MISSING] },
-  { key: "business_purpose", label: "Tätigkeitsbeschreibung", render: (c) => text(c.business_purpose), long: true, votes: (c) => one(c.business_purpose) },
-  // The company's own words from its homepage, not the register's purpose: its own column, labelled as such.
-  { key: "activity_description", label: "Tätigkeit (laut Website)", render: (c) => text(c.activity_description), long: true, votes: (c) => one(c.activity_description) },
+  // One row (#183): the company's own words from its homepage, else the register's business purpose.
+  // shortcut: sorted by the homepage text only; a combined sort needs a view column in the Data Hub.
+  {
+    key: "activity_description",
+    label: "Tätigkeit",
+    render: (c) => text(c.activity_description ?? c.business_purpose),
+    long: true,
+    votes: (c) => one(c.activity_description ?? c.business_purpose),
+    field: (c) => (c.activity_description ? "activity_description" : "business_purpose"),
+  },
   // Stored, never resolved: no votes, no provenance. Off by default: a list shows many companies' addresses at once.
   {
     key: "emails",
@@ -199,7 +200,7 @@ export const COLUMNS: Column[] = [
   {
     key: "deeptech",
     label: "DeepTech",
-    render: (c) => text(c.deeptech_class),
+    render: (c) => (c.deeptech_class ? (DEEPTECH_CLASSES[c.deeptech_class] ?? c.deeptech_class) : "–"),
     votes: (c) => one(c.deeptech_class),
     confidence: true,
   },

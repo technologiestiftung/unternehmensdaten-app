@@ -338,24 +338,25 @@ describe("Gründung", () => {
   });
 });
 
-describe("activity description (unternehmensdatenbank #152)", () => {
-  it("shows the homepage's description in its own votable column next to the register purpose", async () => {
-    const own = "Wir entwickeln Software für Stadtwerke.";
-    const purpose = "Gegenstand des Unternehmens ist die Entwicklung von Software.";
+describe("Tätigkeit (unternehmensdatenbank #152, #183)", () => {
+  const own = "Wir entwickeln Software für Stadtwerke.";
+  const purpose = "Gegenstand des Unternehmens ist die Entwicklung von Software.";
+
+  it("shows one row: the homepage's own words when there are any, voted on as activity_description", async () => {
     stubHasura({ Company: { companies: [{ ...detail.companies[0], business_purpose: purpose, activity_description: own }] } });
     const html = await render({});
-    expect(html).toContain("Tätigkeitsbeschreibung");
-    expect(html).toContain("Tätigkeit (laut Website)");
+    expect(html).toContain(">Tätigkeit</dt>");
+    expect(html).not.toContain("Tätigkeitsbeschreibung");
     expect(html).toContain(own);
-    expect(html).toContain(purpose);
-    expect(html.indexOf("Tätigkeitsbeschreibung")).toBeLessThan(html.indexOf("Tätigkeit (laut Website)"));
+    expect(html).not.toContain(purpose);
     expect(votes).toContainEqual([ID, "activity_description", own]);
   });
 
-  it("shows a dash when the homepage gave none", async () => {
-    stubHasura({ Company: detail });
+  it("falls back to the register's business purpose, voted on as business_purpose", async () => {
+    stubHasura({ Company: { companies: [{ ...detail.companies[0], business_purpose: purpose, activity_description: null }] } });
     const html = await render({});
-    expect(html).toMatch(/Tätigkeit \(laut Website\)[\s\S]*?–/);
+    expect(html).toContain(purpose);
+    expect(votes).toContainEqual([ID, "business_purpose", purpose]);
   });
 
   it("explains the confidence colors under the fields (#183)", async () => {
