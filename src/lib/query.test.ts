@@ -20,15 +20,9 @@ describe("sortOf / orderBy", () => {
     expect(orderBy({})).toEqual([{ name: "asc_nulls_last" }, { id: "asc" }]);
   });
 
-  it("sorts by a relationship's aggregate through a dotted path", () => {
-    expect(orderBy({ sort: "emails" })).toEqual([
-      { emails_aggregate: { min: { email: "asc_nulls_last" } } },
-      { name: "asc" },
-      { id: "asc" },
-    ]);
-    expect(orderBy({ sort: "comment", dir: "desc" })[0]).toEqual({
-      comments_aggregate: { max: { created_at: "desc_nulls_last" } },
-    });
+  it("never sorts by a relationship's aggregate, which runs for hours on the full list", () => {
+    expect(orderBy({ sort: "emails" })[0]).toEqual({ name: "asc_nulls_last" });
+    expect(orderBy({ sort: "comment", dir: "desc" })[0]).toEqual({ name: "desc_nulls_last" });
   });
 
   it("sorts the long text columns too", () => {

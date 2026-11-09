@@ -4,7 +4,7 @@ The web app for the Berlin company database. It shows one record per company, wi
 columns, the federal grants (Förderungen) and comments by colleagues. The company list can be
 sorted and filtered (the search is fuzzy on name, register number, website and address and sorts by relevance; an exact register number such as `HRB 121291` finds that entry; Quelle, Rechtsform, Technologiefeld and Website-Endung take several values, Website-Endung also "keine Website"; Förderungen is one range from a dropdown), and the filtered view is in the URL, so it can be shared. The list starts with active companies only: a dissolved company often has the same name as an active one, and side by side they look like duplicates. "alle" under Registerstatus shows every status; a search by register number finds the entry whatever its status. The browser remembers
 the chosen columns in a `cols` cookie for the next visit; a link with its own columns wins. Every column can be sorted
-(Kommentar by the newest comment's date, E-Mail by the alphabetically first address). The E-Mail column is off until
+except E-Mail and Kommentar: those values live in other tables, and sorting 300,000 companies by them ran for hours. The E-Mail column is off until
 picked, because a list shows many companies' addresses at once. Users can mark
 **every shown value** (except the register number, an identifier, and the emails) as correct or wrong and enter the right one (also a value that is missing),
 on the company page or in the list with the pencil icon (**Werte bewerten**) above the table, and each value has an **ⓘ** that says
