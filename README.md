@@ -16,7 +16,7 @@ working values, never shown, only on the source's own page). Each source's name 
 company, per field the values per confidence range (our estimate, not measured accuracy) and its last 20 runs, with
 interrupted ones marked. The page **Klassifikationen**
 (`/classifications`, also in the header) lists the Technologiefelder with their keywords (and the removed ones,
-with the reason) and the WZ 2025 sections and divisions; a company's Technologiefeld, WZ number and estimated WZ division ("WZ (geschätzt)", from the website text, never the official number) link there.
+with the reason) and the WZ 2025 sections and divisions; a company's Technologiefeld and WZ link there. The WZ row shows the official number when a source gives one, else the estimate from the website text; the Tätigkeit row shows the homepage's own description, else the register's business purpose. Technologiefeld, WZ, DeepTech (non-tech, tech, hybrid, deep tech) and KI-Unternehmen are guesses shown at any confidence, with the percent and a color: green from 80 %, yellow 50–79 %, red below 50 % (unternehmensdatenbank #183).
 The company page also lists every email any source stored for the company (also ones that may be a person's;
 research phase), highest confidence first, each with its kind (Firmenadresse, Personenadresse, andere Domain;
 emails stored before the kind existed show only the confidence) and confidence, without votes, ⓘ or history;

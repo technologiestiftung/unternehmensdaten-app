@@ -68,8 +68,10 @@ describe("column votes", () => {
 
   it("votes on every field the database accepts, and only those", () => {
     const voted = [NAME_COLUMN, ...COLUMNS].filter((c) => c.votes).map((c) => c.key);
-    // Grants are voted on one by one in the detail table, not in the cell.
-    expect([...voted, "fundings"].sort()).toEqual([...FEEDBACK_FIELDS].sort());
+    // Grants are voted on one by one in the detail table, not in the cell. The WZ row votes on the
+    // official wz_code when there is one, else on the estimate under its key; the Tätigkeit row votes on
+    // the business purpose when the homepage gave no description.
+    expect([...voted, "fundings", "wz_code", "business_purpose"].sort()).toEqual([...FEEDBACK_FIELDS].sort());
   });
 
   it("gives each manager a vote of their own", () => {

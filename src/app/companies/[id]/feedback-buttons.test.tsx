@@ -96,3 +96,39 @@ describe("FieldCell", () => {
     expect(html).toContain('aria-label="stimmt: Beispiel GmbH"');
   });
 });
+
+describe("confidence of a guess (unternehmensdatenbank #183)", () => {
+  const cell = (key: string, over: Partial<CompanyProfile>, rows: Provenance[]) =>
+    renderToStaticMarkup(<>{FieldCell({ company: { ...company, ...over }, column: COLUMNS.find((c) => c.key === key)!, provenance: rows })}</>);
+  const tf = (confidence: number) => prov({ field_name: "technology_field", value: "Artificial Intelligence", confidence });
+
+  it("colors each band and keeps the percent as text, also below 50 %", () => {
+    const value = { technology_field: "Artificial Intelligence" };
+    expect(cell("technology_field", value, [tf(0.85)])).toMatch(/class="[^"]*bg-green-100[^"]*">85 %</);
+    expect(cell("technology_field", value, [tf(0.6)])).toMatch(/class="[^"]*bg-yellow-100[^"]*">60 %</);
+    expect(cell("technology_field", value, [tf(0.31)])).toMatch(/class="[^"]*bg-red-100[^"]*">31 %</);
+  });
+
+  it("shows the official WZ number as certain, the estimate with its source's confidence", () => {
+    const official = cell("wz_division_estimated", { wz_code: "62.01", wz_division_estimated: "56" }, []);
+    expect(official).toContain(">62.01<");
+    expect(official).toMatch(/bg-green-100[^"]*">100 %</);
+    const estimate = cell("wz_division_estimated", { wz_division_estimated: "56" },
+      [prov({ field_name: "wz_division_estimated", value: "56", confidence: 0.4 })]);
+    expect(estimate).toMatch(/bg-red-100[^"]*">40 %</);
+  });
+
+  it("shows the four DeepTech classes for people, with the observation's confidence", () => {
+    const html = cell("deeptech", { deeptech_class: "deep tech", deeptech_confidence: 0.9 }, []);
+    expect(html).toContain("Deep Tech");
+    expect(html).toMatch(/bg-green-100[^"]*">90 %</);
+    expect(cell("deeptech", { deeptech_class: "non-tech", deeptech_confidence: 0.35 }, [])).toMatch(/Non-Tech.*bg-red-100[^"]*">35 %</);
+  });
+
+  it("shows no badge on the Tätigkeit, on fields that are not guesses, or without a value", () => {
+    expect(cell("activity_description", { activity_description: "Software" },
+      [prov({ field_name: "activity_description", value: "Software", confidence: 0.4 })])).not.toMatch(/bg-(green|yellow|red)-100/);
+    expect(cell("technology_field", {}, [])).not.toContain(" %<");
+    expect(cell("legal_form", {}, [prov({ field_name: "legal_form", value: "GmbH", confidence: 0.3 })])).not.toContain("bg-red-100");
+  });
+});

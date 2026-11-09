@@ -80,7 +80,14 @@ export type Column = {
    * one in the detail page's table; comments and the date are not data to judge).
    */
   votes?: (c: CompanyProfile) => string[];
+  /** The feedback and provenance field of the shown value, when it is not the key (the WZ row shows one of two). */
+  field?: (c: CompanyProfile) => string;
+  /** A guess shown at any confidence: the cell shows its confidence with a color (#183). */
+  confidence?: boolean;
 };
+
+/** The four DeepTech classes as stored (#183), written for people. */
+const DEEPTECH_CLASSES: Record<string, string> = { "non-tech": "Non-Tech", tech: "Tech", hybrid: "Hybrid", "deep tech": "Deep Tech" };
 
 /** One vote on the field's raw value, or on its absence. */
 const one = (value: string | number | boolean | null) =>
@@ -127,13 +134,18 @@ export const COLUMNS: Column[] = [
       ),
     numeric: true,
   },
-  { key: "wz_code", label: "WZ-Nummer", render: (c) => explained(c.wz_code, c.wz_code && wzAnchor(c.wz_code)), votes: (c) => one(c.wz_code) },
-  // An estimate from the website text, never the official number: its own column, labelled as such.
+  // One row (#183): the official number when a source ever gives one (certain), else the estimate with its confidence.
+  // shortcut: keyed, sorted and filtered by the estimate, since no source gives an official number for Berlin yet.
   {
     key: "wz_division_estimated",
-    label: "WZ (geschätzt)",
-    render: (c) => explained(c.wz_division_estimated, c.wz_division_estimated && wzAnchor(c.wz_division_estimated)),
-    votes: (c) => one(c.wz_division_estimated),
+    label: "WZ",
+    render: (c) => {
+      const value = c.wz_code ?? c.wz_division_estimated;
+      return explained(value, value && wzAnchor(value));
+    },
+    votes: (c) => one(c.wz_code ?? c.wz_division_estimated),
+    field: (c) => (c.wz_code ? "wz_code" : "wz_division_estimated"),
+    confidence: true,
   },
   // One column for date and year: the date when it is known and agrees with the year, else the year alone.
   {
@@ -150,6 +162,7 @@ export const COLUMNS: Column[] = [
     label: "Technologiefeld",
     render: (c) => explained(c.technology_field, c.technology_field && technologyFieldAnchor(c.technology_field)),
     votes: (c) => one(c.technology_field),
+    confidence: true,
   },
   {
     key: "website",
@@ -165,9 +178,16 @@ export const COLUMNS: Column[] = [
     votes: (c) => one(c.website),
   },
   { key: "management", label: "Geschäftsführung", render: (c) => text(c.management), long: true, multiValue: true, votes: (c) => c.management ? c.management.split(MANAGEMENT_SEPARATOR) : [MISSING] },
-  { key: "business_purpose", label: "Tätigkeitsbeschreibung", render: (c) => text(c.business_purpose), long: true, votes: (c) => one(c.business_purpose) },
-  // The company's own words from its homepage, not the register's purpose: its own column, labelled as such.
-  { key: "activity_description", label: "Tätigkeit (laut Website)", render: (c) => text(c.activity_description), long: true, votes: (c) => one(c.activity_description) },
+  // One row (#183): the company's own words from its homepage, else the register's business purpose.
+  // shortcut: sorted by the homepage text only; a combined sort needs a view column in the Data Hub.
+  {
+    key: "activity_description",
+    label: "Tätigkeit",
+    render: (c) => text(c.activity_description ?? c.business_purpose),
+    long: true,
+    votes: (c) => one(c.activity_description ?? c.business_purpose),
+    field: (c) => (c.activity_description ? "activity_description" : "business_purpose"),
+  },
   // Stored, never resolved: no votes, no provenance. Off by default: a list shows many companies' addresses at once.
   {
     key: "emails",
@@ -180,11 +200,11 @@ export const COLUMNS: Column[] = [
   {
     key: "deeptech",
     label: "DeepTech",
-    render: (c) =>
-      c.deeptech_class ? `${c.deeptech_class} (Konfidenz ${formatNumber(c.deeptech_confidence)})` : "–",
+    render: (c) => (c.deeptech_class ? (DEEPTECH_CLASSES[c.deeptech_class] ?? c.deeptech_class) : "–"),
     votes: (c) => one(c.deeptech_class),
+    confidence: true,
   },
-  { key: "is_ai", label: "KI-Unternehmen", render: (c) => (c.is_ai == null ? "–" : c.is_ai ? "ja" : "nein"), votes: (c) => one(c.is_ai) },
+  { key: "is_ai", label: "KI-Unternehmen", render: (c) => (c.is_ai == null ? "–" : c.is_ai ? "ja" : "nein"), votes: (c) => one(c.is_ai), confidence: true },
   { key: "register_status", label: "Registerstatus", render: (c) => text(c.register_status), votes: (c) => one(c.register_status) },
   { key: "updated_at", label: "Stand", render: (c) => formatDate(c.updated_at) },
 ];

@@ -9,6 +9,7 @@ import {
   type Tally,
   tallyKey,
 } from "@/lib/feedback";
+import { ConfidenceBadge, confidenceOf } from "@/lib/confidence";
 import { type Provenance, provenanceFor, sourcesOf } from "@/lib/provenance";
 import { setVote } from "./actions";
 import { ProvenanceInfo } from "./provenance-info";
@@ -139,17 +140,20 @@ export function FieldCell({
   max?: number;
 }): ReactNode {
   const values = column.votes?.(company);
-  if (!values || !isField(column.key)) {
+  const field = column.field?.(company) ?? column.key;
+  const sure = column.confidence ? confidenceOf(company, column, provenance) : null;
+  const badge = sure != null && <ConfidenceBadge value={sure} />;
+  if (!values || !isField(field)) {
     // A sum (Förderungen) has no single value to vote on; the ⓘ names where its parts came from.
-    const sources = sourcesOf(provenance.filter((row) => row.field_name === column.key));
+    const sources = sourcesOf(provenance.filter((row) => row.field_name === field));
     return (
       <>
         {column.render(company)}
+        {badge}
         <ProvenanceInfo label={column.label} rows={sources} />
       </>
     );
   }
-  const field = column.key;
   const several = column.multiValue === true;
   const more = max === undefined ? 0 : Math.max(0, values.length - max);
   const cells = values.slice(0, values.length - more).map((value) => {
@@ -174,6 +178,7 @@ export function FieldCell({
     return (
       <span key={value} className="mr-2 inline-block">
         {withValue && (several ? value : column.render(company))}
+        {withValue && badge}
         <ProvenanceInfo label={`${column.label}: ${value}`} rows={provenanceFor(provenance, field, value, several)} />
         {votes && <FeedbackButtons companyId={company.id} field={field} value={value} tally={tally} />}
         {corrections && tally?.mine === "wrong" && (

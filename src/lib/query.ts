@@ -16,7 +16,6 @@ export const SORTABLE = {
   employee_count: "employee_count",
   revenue: "revenue",
   fundings: "funding_total_eur",
-  wz_code: "wz_code",
   wz_division_estimated: "wz_division_estimated",
   established_year: "established_year",
   address: "address",
@@ -24,7 +23,6 @@ export const SORTABLE = {
   technology_field: "technology_field",
   website: "website",
   management: "management",
-  business_purpose: "business_purpose",
   activity_description: "activity_description",
   // shortcut: the alphabetically first address, not the one shown first; good enough to bring companies with an email together.
   emails: "emails_aggregate.min.email",
@@ -194,6 +192,8 @@ export const searchVariable = (params: ListParams) =>
 /** Column keys that were renamed, so saved `cols` cookies, bookmarks and sort links keep working. */
 const RENAMED_KEYS: Record<string, string> = {
   established_at: "established_year",
+  wz_code: "wz_division_estimated",
+  business_purpose: "activity_description",
 };
 const currentKey = (key: string) =>
   Object.hasOwn(RENAMED_KEYS, key) ? RENAMED_KEYS[key] : key;

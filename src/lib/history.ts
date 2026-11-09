@@ -1,4 +1,4 @@
-import { COLUMNS, type CompanyProfile, NAME_COLUMN } from "./columns";
+import { type Column, COLUMNS, type CompanyProfile, NAME_COLUMN } from "./columns";
 import { isField, MISSING } from "./feedback";
 
 /** One change of a shown value (`v_company_history`, Hasura: the profile's `history`). */
@@ -45,7 +45,15 @@ const EXTRA_LABELS: Record<string, string> = {
   established_at: "Gründungsdatum",
 };
 
-const column = (key: string) => [NAME_COLUMN, ...COLUMNS].find((c) => c.key === key);
+/** Fields shown inside a merged row (#183): their history and claims stay per field. */
+const MERGED: Record<string, string> = { wz_code: "wz_division_estimated", business_purpose: "activity_description" };
+
+/** The column of a field; for a field of a merged row, that row voting on the field's own value. */
+const column = (key: string): Column | undefined => {
+  const row = [NAME_COLUMN, ...COLUMNS].find((c) => c.key === (MERGED[key] ?? key));
+  if (!row?.field) return row;
+  return { ...row, key, votes: (c) => { const value = c[key as keyof CompanyProfile]; return [value == null ? MISSING : String(value)]; } };
+};
 
 /** The German label of a field key, as the profile table names it; the key itself if unknown. */
 export function fieldLabel(key: string): string {
