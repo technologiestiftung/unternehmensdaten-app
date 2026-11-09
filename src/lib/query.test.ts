@@ -195,6 +195,13 @@ describe("visibleColumns", () => {
     expect(visibleColumns(withFounding, "established_at")).toEqual([{ key: "established_year" }]);
     expect(sortOf({ sort: "established_at", dir: "desc" })).toEqual({ key: "established_year", dir: "desc" });
   });
+
+  it("reads the old keys wz_code and business_purpose, saved before they merged into the WZ and Tätigkeit rows", () => {
+    const merged = [{ key: "name" }, { key: "wz_division_estimated" }, { key: "activity_description" }, { key: "technology_field" }];
+    expect(visibleColumns(merged, "name,wz_code,business_purpose,technology_field")).toEqual(merged);
+    expect(sortOf({ sort: "wz_code", dir: "desc" })).toEqual({ key: "wz_division_estimated", dir: "desc" });
+    expect(sortOf({ sort: "business_purpose", dir: "asc" })).toEqual({ key: "activity_description", dir: "asc" });
+  });
 });
 
 describe("pageNumbers", () => {

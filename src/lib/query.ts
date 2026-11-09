@@ -192,6 +192,8 @@ export const searchVariable = (params: ListParams) =>
 /** Column keys that were renamed, so saved `cols` cookies, bookmarks and sort links keep working. */
 const RENAMED_KEYS: Record<string, string> = {
   established_at: "established_year",
+  wz_code: "wz_division_estimated",
+  business_purpose: "activity_description",
 };
 const currentKey = (key: string) =>
   Object.hasOwn(RENAMED_KEYS, key) ? RENAMED_KEYS[key] : key;
