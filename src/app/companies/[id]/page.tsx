@@ -37,6 +37,7 @@ import {
 } from "@/lib/query";
 import { Pager } from "@/app/pager";
 import { addComment } from "./actions";
+import { ConfidenceLegend } from "@/lib/confidence";
 import { FeedbackButtons, FieldCell } from "./feedback-buttons";
 import { History } from "./history";
 import { ProvenanceInfo } from "./provenance-info";
@@ -281,6 +282,7 @@ export default async function CompanyPage({
           </div>
         ))}
       </dl>
+      <ConfidenceLegend />
 
       <h2 id="foerderungen" className="mt-10 mb-3 scroll-mt-4">
         Förderungen

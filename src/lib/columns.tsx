@@ -21,6 +21,8 @@ export type CompanyProfile = {
   address: string | null;
   legal_form: string | null;
   technology_field: string | null;
+  /** One of the same 77 fields, from the register's business purpose (unternehmensdatenbank #180, #183). */
+  purpose_field: string | null;
   website: string | null;
   management: string | null;
   business_purpose: string | null;
@@ -41,7 +43,7 @@ export type CompanyProfile = {
 /** The GraphQL selection for every column below. */
 export const PROFILE_FIELDS = `
   id name employee_count revenue funding_count funding_total_eur wz_code wz_division_estimated established_at established_year
-  address legal_form technology_field website management business_purpose activity_description
+  address legal_form technology_field purpose_field website management business_purpose activity_description
   deeptech_class deeptech_confidence is_ai register_status registration_number updated_at`;
 
 export const text = (value: string | null) => value ?? "–";
@@ -80,6 +82,10 @@ export type Column = {
    * one in the detail page's table; comments and the date are not data to judge).
    */
   votes?: (c: CompanyProfile) => string[];
+  /** The feedback and provenance field of the shown value, when it is not the key (the WZ row shows one of two). */
+  field?: (c: CompanyProfile) => string;
+  /** A guess shown at any confidence: the cell shows its confidence with a color (#183). */
+  confidence?: boolean;
 };
 
 /** One vote on the field's raw value, or on its absence. */
@@ -127,13 +133,18 @@ export const COLUMNS: Column[] = [
       ),
     numeric: true,
   },
-  { key: "wz_code", label: "WZ-Nummer", render: (c) => explained(c.wz_code, c.wz_code && wzAnchor(c.wz_code)), votes: (c) => one(c.wz_code) },
-  // An estimate from the website text, never the official number: its own column, labelled as such.
+  // One row (#183): the official number when a source ever gives one (certain), else the estimate with its confidence.
+  // shortcut: keyed, sorted and filtered by the estimate, since no source gives an official number for Berlin yet.
   {
     key: "wz_division_estimated",
-    label: "WZ (geschätzt)",
-    render: (c) => explained(c.wz_division_estimated, c.wz_division_estimated && wzAnchor(c.wz_division_estimated)),
-    votes: (c) => one(c.wz_division_estimated),
+    label: "WZ",
+    render: (c) => {
+      const value = c.wz_code ?? c.wz_division_estimated;
+      return explained(value, value && wzAnchor(value));
+    },
+    votes: (c) => one(c.wz_code ?? c.wz_division_estimated),
+    field: (c) => (c.wz_code ? "wz_code" : "wz_division_estimated"),
+    confidence: true,
   },
   // One column for date and year: the date when it is known and agrees with the year, else the year alone.
   {
@@ -150,6 +161,14 @@ export const COLUMNS: Column[] = [
     label: "Technologiefeld",
     render: (c) => explained(c.technology_field, c.technology_field && technologyFieldAnchor(c.technology_field)),
     votes: (c) => one(c.technology_field),
+    confidence: true,
+  },
+  // What the register's business purpose says, not the website: a different question (unternehmensdatenbank CLAUDE.md, three columns).
+  {
+    key: "purpose_field",
+    label: "Technologiefeld laut Zweck",
+    render: (c) => explained(c.purpose_field, c.purpose_field && technologyFieldAnchor(c.purpose_field)),
+    confidence: true,
   },
   {
     key: "website",
@@ -180,11 +199,11 @@ export const COLUMNS: Column[] = [
   {
     key: "deeptech",
     label: "DeepTech",
-    render: (c) =>
-      c.deeptech_class ? `${c.deeptech_class} (Konfidenz ${formatNumber(c.deeptech_confidence)})` : "–",
+    render: (c) => text(c.deeptech_class),
     votes: (c) => one(c.deeptech_class),
+    confidence: true,
   },
-  { key: "is_ai", label: "KI-Unternehmen", render: (c) => (c.is_ai == null ? "–" : c.is_ai ? "ja" : "nein"), votes: (c) => one(c.is_ai) },
+  { key: "is_ai", label: "KI-Unternehmen", render: (c) => (c.is_ai == null ? "–" : c.is_ai ? "ja" : "nein"), votes: (c) => one(c.is_ai), confidence: true },
   { key: "register_status", label: "Registerstatus", render: (c) => text(c.register_status), votes: (c) => one(c.register_status) },
   { key: "updated_at", label: "Stand", render: (c) => formatDate(c.updated_at) },
 ];

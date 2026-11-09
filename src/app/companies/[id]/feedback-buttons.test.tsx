@@ -11,7 +11,7 @@ vi.mock("./actions", () => ({ setVote: async () => {} }));
 const company = {
   id: "c1", name: "Beispiel GmbH", employee_count: null, revenue: 1000, funding_count: 0,
   funding_total_eur: null, wz_code: null, wz_division_estimated: null, established_at: null, established_year: null, address: "Weg 1", legal_form: "GmbH",
-  technology_field: null, website: "https://a.de",
+  technology_field: null, purpose_field: null, website: "https://a.de",
   management: "Anna A; Bert B; Cora C; Dirk D; Emil E",
   business_purpose: null, activity_description: null, deeptech_class: null, deeptech_confidence: null, is_ai: false,
   register_status: "aktiv", registration_number: null, updated_at: null,
@@ -94,5 +94,41 @@ describe("FieldCell", () => {
     );
     expect(html).not.toContain(">Beispiel GmbH<");
     expect(html).toContain('aria-label="stimmt: Beispiel GmbH"');
+  });
+});
+
+describe("confidence of a guess (unternehmensdatenbank #183)", () => {
+  const cell = (key: string, over: Partial<CompanyProfile>, rows: Provenance[]) =>
+    renderToStaticMarkup(<>{FieldCell({ company: { ...company, ...over }, column: COLUMNS.find((c) => c.key === key)!, provenance: rows })}</>);
+  const tf = (confidence: number) => prov({ field_name: "technology_field", value: "Artificial Intelligence", confidence });
+
+  it("colors each band and keeps the percent as text, also below 50 %", () => {
+    const value = { technology_field: "Artificial Intelligence" };
+    expect(cell("technology_field", value, [tf(0.85)])).toMatch(/class="[^"]*bg-green-100[^"]*">85 %</);
+    expect(cell("technology_field", value, [tf(0.6)])).toMatch(/class="[^"]*bg-yellow-100[^"]*">60 %</);
+    expect(cell("technology_field", value, [tf(0.31)])).toMatch(/class="[^"]*bg-red-100[^"]*">31 %</);
+  });
+
+  it("shows the official WZ number as certain, the estimate with its source's confidence", () => {
+    const official = cell("wz_division_estimated", { wz_code: "62.01", wz_division_estimated: "56" }, []);
+    expect(official).toContain(">62.01<");
+    expect(official).toMatch(/bg-green-100[^"]*">100 %</);
+    const estimate = cell("wz_division_estimated", { wz_division_estimated: "56" },
+      [prov({ field_name: "wz_division_estimated", value: "56", confidence: 0.4 })]);
+    expect(estimate).toMatch(/bg-red-100[^"]*">40 %</);
+  });
+
+  it("shows the Technologiefeld laut Zweck with its confidence, without a vote", () => {
+    const html = cell("purpose_field", { purpose_field: "Artificial Intelligence" },
+      [prov({ field_name: "purpose_field", value: "Artificial Intelligence", confidence: 0.6 })]);
+    expect(html).toContain("Artificial Intelligence");
+    expect(html).toMatch(/bg-yellow-100[^"]*">60 %</);
+    expect(html).not.toContain("stimmt:");
+  });
+
+  it("falls back to deeptech_confidence and shows no badge on fields that are not guesses or have no value", () => {
+    expect(cell("deeptech", { deeptech_class: "DeepTech", deeptech_confidence: 0.9 }, [])).toMatch(/bg-green-100[^"]*">90 %</);
+    expect(cell("technology_field", {}, [])).not.toContain(" %<");
+    expect(cell("legal_form", {}, [prov({ field_name: "legal_form", value: "GmbH", confidence: 0.3 })])).not.toContain("bg-red-100");
   });
 });

@@ -60,7 +60,7 @@ describe("column votes", () => {
   const company = {
     id: "x", name: "Beispiel GmbH", employee_count: null, revenue: 1000, funding_count: 0,
     funding_total_eur: null, wz_code: null, wz_division_estimated: null, established_at: null, established_year: null, address: "Weg 1", legal_form: "GmbH",
-    technology_field: null, website: "https://a.de", management: "Erika Muster; Max Beispiel",
+    technology_field: null, purpose_field: null, website: "https://a.de", management: "Erika Muster; Max Beispiel",
     business_purpose: null, activity_description: null, deeptech_class: null, deeptech_confidence: null, is_ai: false,
     register_status: "aktiv", registration_number: null, updated_at: null,
   } satisfies CompanyProfile;
@@ -68,8 +68,9 @@ describe("column votes", () => {
 
   it("votes on every field the database accepts, and only those", () => {
     const voted = [NAME_COLUMN, ...COLUMNS].filter((c) => c.votes).map((c) => c.key);
-    // Grants are voted on one by one in the detail table, not in the cell.
-    expect([...voted, "fundings"].sort()).toEqual([...FEEDBACK_FIELDS].sort());
+    // Grants are voted on one by one in the detail table, not in the cell. The WZ row votes on the
+    // official wz_code when there is one, else on the estimate under its key.
+    expect([...voted, "fundings", "wz_code"].sort()).toEqual([...FEEDBACK_FIELDS].sort());
   });
 
   it("gives each manager a vote of their own", () => {

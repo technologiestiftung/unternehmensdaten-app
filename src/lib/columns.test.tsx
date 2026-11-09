@@ -51,9 +51,14 @@ describe("classification links", () => {
     expect(renderToStaticMarkup(<>{column("technology_field").render(c)}</>)).toBe(
       '<a href="/classifications#tf-artificial-intelligence">Artificial Intelligence</a>',
     );
-    expect(renderToStaticMarkup(<>{column("wz_code").render(c)}</>)).toBe('<a href="/classifications#wz-62">62.01</a>');
-    const estimated = company({ wz_division_estimated: "56" });
+    // One WZ row: the official number wins over the estimate.
+    expect(renderToStaticMarkup(<>{column("wz_division_estimated").render({ ...c, wz_division_estimated: "56" })}</>)).toBe(
+      '<a href="/classifications#wz-62">62.01</a>',
+    );
+    const estimated = company({ wz_code: null, wz_division_estimated: "56" });
     expect(renderToStaticMarkup(<>{column("wz_division_estimated").render(estimated)}</>)).toBe('<a href="/classifications#wz-56">56</a>');
+    expect(column("wz_division_estimated").field!(estimated)).toBe("wz_division_estimated");
+    expect(column("wz_division_estimated").field!(c)).toBe("wz_code");
   });
 
   it("shows a dash without a value", () => {

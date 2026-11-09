@@ -357,4 +357,11 @@ describe("activity description (unternehmensdatenbank #152)", () => {
     const html = await render({});
     expect(html).toMatch(/Tätigkeit \(laut Website\)[\s\S]*?–/);
   });
+
+  it("explains the confidence colors under the fields (#183)", async () => {
+    stubHasura({ Company: detail });
+    const html = await render({});
+    expect(html).toContain("Wie sicher:");
+    expect(html).toMatch(/grün ≥ 80 %.*gelb 50–79 %.*rot &lt; 50 %/);
+  });
 });
