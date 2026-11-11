@@ -7,7 +7,7 @@ import { UUID } from "@/lib/format";
 import { hasura } from "@/lib/hasura";
 import { REVIEW_PATH, verdictInput } from "@/lib/review";
 import {
-  DELETE_ROUND, isManager, MANAGER, type MessageKey, RENAME_ROUND, REQUEST_ROUND, requestInput, titleInput,
+  DELETE_ROUND, type MessageKey, RENAME_ROUND, REQUEST_ROUND, requestInput, titleInput,
 } from "@/lib/review-manage";
 
 // One verdict per task: answering again changes it. Hasura sets author_id from the token and lets a
@@ -58,50 +58,47 @@ function back(message: MessageKey): never {
   redirect(`${REVIEW_PATH}?meldung=${message}`);
 }
 
-/** A mutation as manager; null when Hasura refused it (a CHECK, a permission, the network). */
-async function asManager<T>(query: string, variables: Record<string, unknown>, accessToken: string): Promise<T | null> {
+/** A mutation; null when Hasura refused it (a CHECK, a permission, the network). */
+async function tryMutation<T>(query: string, variables: Record<string, unknown>, accessToken: string): Promise<T | null> {
   try {
-    return await hasura<T>(query, variables, accessToken, MANAGER);
+    return await hasura<T>(query, variables, accessToken);
   } catch (error) {
     console.error(error);
     return null;
   }
 }
 
-/** A manager asks for a round; the DAG `review_round_requests` draws it within 5 minutes. */
+/** Asks for a round; the DAG `review_round_requests` draws it within 5 minutes. */
 export async function requestRound(form: FormData): Promise<void> {
   const session = await requireSession();
-  if (!isManager(session.accessToken)) back("forbidden");
   const input = requestInput(form);
   if ("error" in input) back(input.error);
-  const data = await asManager<{ insert_review_round_requests_one: { id: string } | null }>(
+  const data = await tryMutation<{ insert_review_round_requests_one: { id: string } | null }>(
     REQUEST_ROUND, { object: input }, session.accessToken,
   );
   if (!data?.insert_review_round_requests_one) back("failed");
   back("requested");
 }
 
-/** A manager renames a round: its title only. */
+/** Renames a round: its title only. */
 export async function renameRound(form: FormData): Promise<void> {
   const session = await requireSession();
   const id = String(form.get("id") ?? "");
   const title = titleInput(form.get("title"));
-  if (!isManager(session.accessToken)) back("forbidden");
   if (!UUID.test(id) || !title) back("title");
-  const data = await asManager<{ update_review_rounds_by_pk: { id: string } | null }>(
+  const data = await tryMutation<{ update_review_rounds_by_pk: { id: string } | null }>(
     RENAME_ROUND, { id, title }, session.accessToken,
   );
   if (!data) back("failed");
   back(data.update_review_rounds_by_pk ? "renamed" : "gone");
 }
 
-/** A manager deletes a round. The database takes back the votes its verdicts wrote (V11). */
+/** Deletes a round. The database takes back the votes its verdicts wrote (V11). */
 export async function deleteRound(form: FormData): Promise<void> {
   const session = await requireSession();
   const id = String(form.get("id") ?? "");
-  if (!isManager(session.accessToken)) back("forbidden");
   if (!UUID.test(id)) back("unknownRound");
-  const data = await asManager<{ delete_review_rounds_by_pk: { id: string } | null }>(
+  const data = await tryMutation<{ delete_review_rounds_by_pk: { id: string } | null }>(
     DELETE_ROUND, { id }, session.accessToken,
   );
   if (!data) back("failed");

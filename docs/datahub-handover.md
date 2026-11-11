@@ -35,8 +35,6 @@ A **confidential** OpenID Connect client `unternehmensdaten-app` with:
 - post-logout redirect `<NEXTAUTH_URL>/*`
 - standard flow on, direct access grants **off** (they are on locally only, for testing)
 - a realm role `user` for everyone who may use the app
-- a realm role `manager` for the few who may start, rename and delete Prüfen rounds (not `admin`:
-  Hasura treats a role named `admin` as its superuser)
 
 Hasura reads the realm roles from `realm_access.roles` and the user id from `sub`. The local
 reference is `keycloak/datahub-realm.json` in the unternehmensdatenbank repo.

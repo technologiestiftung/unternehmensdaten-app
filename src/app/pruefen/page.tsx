@@ -4,7 +4,7 @@ import { requireSession } from "@/lib/auth";
 import { formatDate, formatNumber } from "@/lib/format";
 import { hasura } from "@/lib/hasura";
 import { formatPrecision, KIND_LABELS, MODE_LABELS, REVIEW_PATH, reviewEnabled, ROUNDS, type Round } from "@/lib/review";
-import { isManager, MANAGER, messageText, REQUESTS, type RoundRequest } from "@/lib/review-manage";
+import { messageText, REQUESTS, type RoundRequest } from "@/lib/review-manage";
 import { fieldLabel } from "@/lib/sources";
 import { NewRoundForm, RequestList, RoundActions } from "./manage";
 
@@ -14,12 +14,9 @@ export default async function ReviewRoundsPage({
 }: { searchParams?: Promise<Record<string, string | string[] | undefined>> } = {}) {
   const session = await requireSession();
   if (!(await reviewEnabled(session.accessToken))) notFound();
-  const manager = isManager(session.accessToken);
-  const [{ review_rounds: rounds }, requests] = await Promise.all([
+  const [{ review_rounds: rounds }, { review_round_requests: requests }] = await Promise.all([
     hasura<{ review_rounds: Round[] }>(ROUNDS, {}, session.accessToken),
-    manager
-      ? hasura<{ review_round_requests: RoundRequest[] }>(REQUESTS, {}, session.accessToken, MANAGER).then((d) => d.review_round_requests)
-      : [],
+    hasura<{ review_round_requests: RoundRequest[] }>(REQUESTS, {}, session.accessToken),
   ]);
   const message = messageText((await searchParams)?.meldung);
 
@@ -36,8 +33,8 @@ export default async function ReviewRoundsPage({
           {message}
         </p>
       )}
-      {manager && <NewRoundForm />}
-      {manager && <RequestList requests={requests} />}
+      <NewRoundForm />
+      <RequestList requests={requests} />
       {rounds.length === 0 ? (
         <p className="mt-6 text-sm text-zinc-600">Noch keine Runde gezogen.</p>
       ) : (
@@ -53,7 +50,7 @@ export default async function ReviewRoundsPage({
                 <th scope="col">Version</th>
                 <th scope="col">Fortschritt</th>
                 <th scope="col" className="text-right">Trefferquote</th>
-                {manager && <th scope="col">Verwalten</th>}
+                <th scope="col">Verwalten</th>
               </tr>
             </thead>
             <tbody>
@@ -86,11 +83,9 @@ export default async function ReviewRoundsPage({
                     <td className="text-right">
                       {r.results?.precision == null ? "–" : formatPrecision(r.results.precision)}
                     </td>
-                    {manager && (
-                      <td>
-                        <RoundActions round={r} />
-                      </td>
-                    )}
+                    <td>
+                      <RoundActions round={r} />
+                    </td>
                   </tr>
                 );
               })}

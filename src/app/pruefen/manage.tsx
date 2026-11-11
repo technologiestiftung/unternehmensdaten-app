@@ -6,7 +6,7 @@ import { deleteRound, renameRound, requestRound } from "./actions";
 
 const LABEL = "flex flex-col gap-1.5 text-xs font-medium text-zinc-500";
 
-/** "Neue Runde": a manager asks for a round; plain form, works without JavaScript. */
+/** "Neue Runde": anyone signed in asks for a round; plain form, works without JavaScript. */
 export function NewRoundForm() {
   return (
     <details className="mt-6 max-w-3xl border border-zinc-200 p-4">
@@ -67,7 +67,7 @@ export function NewRoundForm() {
   );
 }
 
-/** Open and failed requests, so a manager sees what is coming and why one failed. */
+/** Open and failed requests, so everyone sees what is coming and why one failed. */
 export function RequestList({ requests }: { requests: RoundRequest[] }) {
   if (requests.length === 0) return null;
   return (
