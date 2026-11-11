@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Round, Task } from "@/lib/review";
 import { stubHasura } from "@/test/hasura-stub";
-import { deleteRound, removeVerdict, requestRound, saveVerdict } from "./actions";
+import { deleteRound, removeVerdict, renameRound, requestRound, saveVerdict } from "./actions";
 import ReviewRoundsPage from "./page";
 import ReviewRoundPage from "./[round]/page";
 import ReviewResultsPage from "./[round]/ergebnis/page";
@@ -21,6 +21,7 @@ afterEach(() => {
   session.accessToken = "token";
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 const ROUND_ID = "00000000-0000-4000-8000-0000000000aa";
@@ -148,6 +149,11 @@ describe("managing rounds (#190)", () => {
     for (const [key, value] of Object.entries(fields)) data.set(key, value);
     return data;
   };
+  /** Where a server action sent the person: Next's redirect throws with the target in its digest. */
+  const redirectTo = async (action: Promise<void>) => {
+    const error = await action.then(() => null, (e: { digest?: string }) => e);
+    return error?.digest?.split(";")[2];
+  };
 
   it("offers the form, the requests and delete only to a manager", async () => {
     stubHasura({ ...ON, ReviewRounds: { review_rounds: [round()] } });
@@ -161,7 +167,7 @@ describe("managing rounds (#190)", () => {
       ReviewRounds: { review_rounds: [round()] },
       ReviewRoundRequests: { review_round_requests: [{ id: "r1", field_name: "website", kind: "gap", source_key: null, size: 200, mode: "measure", title: null, status: "failed", error: "nothing to draw for website · gap · None", requested_at: "2026-11-11T10:00:00Z" }] },
     });
-    const page = text(renderToStaticMarkup(await ReviewRoundsPage({ searchParams: Promise.resolve({ meldung: "Runde gelöscht, ihre Stimmen zurückgenommen." }) })));
+    const page = text(renderToStaticMarkup(await ReviewRoundsPage({ searchParams: Promise.resolve({ meldung: "deleted" }) })));
     expect(page).toContain("Neue Runde");
     expect(page).toContain("Grund: nothing to draw for website · gap · None");
     expect(page).toContain("Löscht die Runde mit 34 Antworten. Ihre Stimmen werden zurückgenommen");
@@ -191,7 +197,36 @@ describe("managing rounds (#190)", () => {
   it("deletes a round as manager", async () => {
     session.accessToken = tokenWith("manager");
     const requests = stubHasura({ DeleteReviewRound: { delete_review_rounds_by_pk: { id: ROUND_ID } } });
-    await expect(deleteRound(form({ id: ROUND_ID }))).rejects.toThrow(/NEXT_REDIRECT/);
+    expect(await redirectTo(deleteRound(form({ id: ROUND_ID })))).toBe("/pruefen?meldung=deleted");
     expect(requests.map((r) => [r.operation, r.role, r.variables])).toEqual([["DeleteReviewRound", "manager", { id: ROUND_ID }]]);
+  });
+
+  it("shows only its own messages, never text from the link", async () => {
+    stubHasura({ ...ON, ReviewRounds: { review_rounds: [] } });
+    const page = text(renderToStaticMarkup(await ReviewRoundsPage({ searchParams: Promise.resolve({ meldung: "Bitte neu anmelden unter evil.example" }) })));
+    expect(page).not.toContain("evil.example");
+    const proto = text(renderToStaticMarkup(await ReviewRoundsPage({ searchParams: Promise.resolve({ meldung: "toString" }) })));
+    expect(proto).not.toContain("function");
+  });
+
+  it("refuses a kind or mode that is only an object's built-in name", async () => {
+    session.accessToken = tokenWith("manager");
+    const requests = stubHasura({});
+    expect(await redirectTo(requestRound(form({ field_name: "website", kind: "constructor", source_key: "s" })))).toBe("/pruefen?meldung=kind");
+    expect(await redirectTo(requestRound(form({ field_name: "website", kind: "shown", source_key: "s", mode: "toString" })))).toBe("/pruefen?meldung=mode");
+    expect(requests).toEqual([]);
+  });
+
+  it("comes back with a message when Hasura refuses, and says when the round is gone", async () => {
+    session.accessToken = tokenWith("manager");
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    stubHasura({}); // every mutation answers with a GraphQL error
+    expect(await redirectTo(requestRound(form({ field_name: "website", kind: "shown", source_key: "unknown" })))).toBe("/pruefen?meldung=failed");
+    expect(await redirectTo(renameRound(form({ id: ROUND_ID, title: "Neu" })))).toBe("/pruefen?meldung=failed");
+    expect(await redirectTo(deleteRound(form({ id: ROUND_ID })))).toBe("/pruefen?meldung=failed");
+
+    stubHasura({ RenameReviewRound: { update_review_rounds_by_pk: null }, DeleteReviewRound: { delete_review_rounds_by_pk: null } });
+    expect(await redirectTo(renameRound(form({ id: ROUND_ID, title: "Neu" })))).toBe("/pruefen?meldung=gone");
+    expect(await redirectTo(deleteRound(form({ id: ROUND_ID })))).toBe("/pruefen?meldung=gone");
   });
 });

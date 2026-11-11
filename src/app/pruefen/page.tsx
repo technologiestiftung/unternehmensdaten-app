@@ -4,7 +4,7 @@ import { requireSession } from "@/lib/auth";
 import { formatDate, formatNumber } from "@/lib/format";
 import { hasura } from "@/lib/hasura";
 import { formatPrecision, KIND_LABELS, MODE_LABELS, REVIEW_PATH, reviewEnabled, ROUNDS, type Round } from "@/lib/review";
-import { isManager, MANAGER, REQUESTS, type RoundRequest } from "@/lib/review-manage";
+import { isManager, MANAGER, messageText, REQUESTS, type RoundRequest } from "@/lib/review-manage";
 import { fieldLabel } from "@/lib/sources";
 import { NewRoundForm, RequestList, RoundActions } from "./manage";
 
@@ -21,7 +21,7 @@ export default async function ReviewRoundsPage({
       ? hasura<{ review_round_requests: RoundRequest[] }>(REQUESTS, {}, session.accessToken, MANAGER).then((d) => d.review_round_requests)
       : [],
   ]);
-  const message = (await searchParams)?.meldung;
+  const message = messageText((await searchParams)?.meldung);
 
   return (
     <>
@@ -31,7 +31,7 @@ export default async function ReviewRoundsPage({
         gespeichert und fließt als Stimme in die Daten zurück. Bei „messen“ zeigt die Runde, wie oft die
         Quelle richtig liegt.
       </p>
-      {typeof message === "string" && (
+      {message && (
         <p role="status" className="mt-4 max-w-3xl border-l-4 border-accent pl-3 text-sm">
           {message}
         </p>

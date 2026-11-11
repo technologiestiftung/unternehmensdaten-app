@@ -64,6 +64,30 @@ export const DELETE_ROUND = `
     delete_review_rounds_by_pk(id: $id) { id }
   }`;
 
+/** What a manager's form says back (`?meldung=<key>`): fixed texts only, so a link cannot put words in the app's mouth. */
+export const MESSAGES = {
+  forbidden: "Nur für die Rolle „manager“.",
+  field: "Feld: Kleinbuchstaben und _, z. B. technology_field.",
+  kind: "Art fehlt.",
+  mode: "Modus fehlt.",
+  size: `Größe: 1 bis ${MAX_SIZE}.`,
+  source: "Quelle fehlt: angezeigte und verworfene Werte gehören zu einer Quelle.",
+  gapTeach: "Lücken haben keine Sicherheit: nur „messen“.",
+  length: `Quelle und Titel: höchstens ${MAX_TEXT} Zeichen.`,
+  title: `Titel: 1 bis ${MAX_TEXT} Zeichen.`,
+  unknownRound: "Unbekannte Runde.",
+  requested: "Runde angefragt. Sie erscheint hier innerhalb von 5 Minuten.",
+  renamed: "Runde umbenannt.",
+  deleted: "Runde gelöscht, ihre Stimmen zurückgenommen.",
+  gone: "Runde nicht mehr vorhanden.",
+  failed: "Konnte nicht gespeichert werden.",
+};
+export type MessageKey = keyof typeof MESSAGES;
+
+/** The text for a `?meldung=` key, or null for anything else. */
+export const messageText = (key: unknown) =>
+  typeof key === "string" && Object.hasOwn(MESSAGES, key) ? MESSAGES[key as MessageKey] : null;
+
 export type RequestInput = {
   field_name: string;
   kind: Kind;
@@ -76,23 +100,23 @@ export type RequestInput = {
 const text = (value: FormDataEntryValue | null) => (typeof value === "string" ? value.trim() : "");
 
 /**
- * The request a submitted form asks for, or an error to show. Checks what the database would refuse;
+ * The request a submitted form asks for, or the message key of an error to show. Checks what the database would refuse;
  * the draw itself decides whether there is anything to draw and says so in the request's error.
  */
-export function requestInput(form: FormData): RequestInput | { error: string } {
+export function requestInput(form: FormData): RequestInput | { error: MessageKey } {
   const field = text(form.get("field_name"));
   const kind = text(form.get("kind"));
   const mode = text(form.get("mode")) || "measure";
   const source = text(form.get("source_key"));
   const title = text(form.get("title"));
   const size = Number(text(form.get("size")) || DEFAULT_SIZE);
-  if (!/^[a-z_]{1,64}$/.test(field)) return { error: "Feld: Kleinbuchstaben und _, z. B. technology_field." };
-  if (!(kind in KIND_LABELS)) return { error: "Art fehlt." };
-  if (!(mode in MODE_LABELS)) return { error: "Modus fehlt." };
-  if (!Number.isInteger(size) || size < 1 || size > MAX_SIZE) return { error: `Größe: 1 bis ${MAX_SIZE}.` };
-  if (kind !== "gap" && !source) return { error: "Quelle fehlt: angezeigte und verworfene Werte gehören zu einer Quelle." };
-  if (kind === "gap" && mode === "teach") return { error: "Lücken haben keine Sicherheit: nur „messen“." };
-  if (source.length > MAX_TEXT || title.length > MAX_TEXT) return { error: `Quelle und Titel: höchstens ${MAX_TEXT} Zeichen.` };
+  if (!/^[a-z_]{1,64}$/.test(field)) return { error: "field" };
+  if (!Object.hasOwn(KIND_LABELS, kind)) return { error: "kind" };
+  if (!Object.hasOwn(MODE_LABELS, mode)) return { error: "mode" };
+  if (!Number.isInteger(size) || size < 1 || size > MAX_SIZE) return { error: "size" };
+  if (kind !== "gap" && !source) return { error: "source" };
+  if (kind === "gap" && mode === "teach") return { error: "gapTeach" };
+  if (source.length > MAX_TEXT || title.length > MAX_TEXT) return { error: "length" };
   return { field_name: field, kind: kind as Kind, source_key: kind === "gap" ? null : source, size, mode: mode as Mode, title: title || null };
 }
 
