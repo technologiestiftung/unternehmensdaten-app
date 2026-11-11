@@ -1,9 +1,14 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth";
 import { UUID } from "@/lib/format";
 import { hasura } from "@/lib/hasura";
-import { verdictInput } from "@/lib/review";
+import { REVIEW_PATH, verdictInput } from "@/lib/review";
+import {
+  DELETE_ROUND, isManager, MANAGER, RENAME_ROUND, REQUEST_ROUND, requestInput, titleInput,
+} from "@/lib/review-manage";
 
 // One verdict per task: answering again changes it. Hasura sets author_id from the token and lets a
 // person update or delete only their own verdict.
@@ -45,4 +50,41 @@ export async function removeVerdict(taskId: string): Promise<boolean> {
   if (!UUID.test(taskId)) return false;
   await hasura(REMOVE, { task_id: taskId }, session.accessToken);
   return true;
+}
+
+/** Back to the list with a message for the person: the forms work without JavaScript. */
+function back(message: string): never {
+  revalidatePath(REVIEW_PATH);
+  redirect(`${REVIEW_PATH}?meldung=${encodeURIComponent(message)}`);
+}
+
+/** A manager asks for a round; the DAG `review_round_requests` draws it within 5 minutes. */
+export async function requestRound(form: FormData): Promise<void> {
+  const session = await requireSession();
+  if (!isManager(session.accessToken)) back("Nur für die Rolle „manager“.");
+  const input = requestInput(form);
+  if ("error" in input) back(input.error);
+  await hasura(REQUEST_ROUND, { object: input }, session.accessToken, MANAGER);
+  back("Runde angefragt. Sie erscheint hier innerhalb von 5 Minuten.");
+}
+
+/** A manager renames a round: its title only. */
+export async function renameRound(form: FormData): Promise<void> {
+  const session = await requireSession();
+  const id = String(form.get("id") ?? "");
+  const title = titleInput(form.get("title"));
+  if (!isManager(session.accessToken)) back("Nur für die Rolle „manager“.");
+  if (!UUID.test(id) || !title) back("Titel: 1 bis 200 Zeichen.");
+  await hasura(RENAME_ROUND, { id, title }, session.accessToken, MANAGER);
+  back("Runde umbenannt.");
+}
+
+/** A manager deletes a round. The database takes back the votes its verdicts wrote (V11). */
+export async function deleteRound(form: FormData): Promise<void> {
+  const session = await requireSession();
+  const id = String(form.get("id") ?? "");
+  if (!isManager(session.accessToken)) back("Nur für die Rolle „manager“.");
+  if (!UUID.test(id)) back("Unbekannte Runde.");
+  await hasura(DELETE_ROUND, { id }, session.accessToken, MANAGER);
+  back("Runde gelöscht, ihre Stimmen zurückgenommen.");
 }

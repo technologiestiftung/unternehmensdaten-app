@@ -2,17 +2,23 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Round, Task } from "@/lib/review";
 import { stubHasura } from "@/test/hasura-stub";
-import { removeVerdict, saveVerdict } from "./actions";
+import { deleteRound, removeVerdict, requestRound, saveVerdict } from "./actions";
 import ReviewRoundsPage from "./page";
 import ReviewRoundPage from "./[round]/page";
 import ReviewResultsPage from "./[round]/ergebnis/page";
 
 // Integration: Hasura's answer → rendered page or mutation. Only the session and the network are stubbed.
+const session = vi.hoisted(() => ({ accessToken: "token" }));
 vi.mock("@/lib/auth", () => ({
-  requireSession: async () => ({ accessToken: "token", userId: "u1" }),
+  requireSession: async () => ({ accessToken: session.accessToken, userId: "u1" }),
   authOptions: () => ({}),
 }));
+vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
+/** An access token carrying Keycloak realm roles; its signature is Hasura's to check, never the app's. */
+const tokenWith = (...roles: string[]) =>
+  `h.${Buffer.from(JSON.stringify({ realm_access: { roles } })).toString("base64url")}.s`;
 afterEach(() => {
+  session.accessToken = "token";
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
@@ -133,5 +139,59 @@ describe("actions", () => {
     const requests = stubHasura({ RemoveReviewVerdict: { delete_review_verdicts_by_pk: { task_id: TASK_ID } } });
     expect(await removeVerdict(TASK_ID)).toBe(true);
     expect(requests[0]).toMatchObject({ operation: "RemoveReviewVerdict", variables: { task_id: TASK_ID } });
+  });
+});
+
+describe("managing rounds (#190)", () => {
+  const form = (fields: Record<string, string>) => {
+    const data = new FormData();
+    for (const [key, value] of Object.entries(fields)) data.set(key, value);
+    return data;
+  };
+
+  it("offers the form, the requests and delete only to a manager", async () => {
+    stubHasura({ ...ON, ReviewRounds: { review_rounds: [round()] } });
+    const plain = text(renderToStaticMarkup(await ReviewRoundsPage()));
+    expect(plain).not.toContain("Neue Runde");
+    expect(plain).not.toContain("Löschen");
+
+    session.accessToken = tokenWith("user", "manager");
+    const requests = stubHasura({
+      ...ON,
+      ReviewRounds: { review_rounds: [round()] },
+      ReviewRoundRequests: { review_round_requests: [{ id: "r1", field_name: "website", kind: "gap", source_key: null, size: 200, mode: "measure", title: null, status: "failed", error: "nothing to draw for website · gap · None", requested_at: "2026-11-11T10:00:00Z" }] },
+    });
+    const page = text(renderToStaticMarkup(await ReviewRoundsPage({ searchParams: Promise.resolve({ meldung: "Runde gelöscht, ihre Stimmen zurückgenommen." }) })));
+    expect(page).toContain("Neue Runde");
+    expect(page).toContain("Grund: nothing to draw for website · gap · None");
+    expect(page).toContain("Löscht die Runde mit 34 Antworten. Ihre Stimmen werden zurückgenommen");
+    expect(page).toContain("Runde gelöscht, ihre Stimmen zurückgenommen.");
+    expect(requests.find((r) => r.operation === "ReviewRoundRequests")?.role).toBe("manager");
+    expect(requests.find((r) => r.operation === "ReviewRounds")?.role).toBeNull();
+  });
+
+  it("asks for a round as manager, with a gap's source dropped", async () => {
+    session.accessToken = tokenWith("manager");
+    const requests = stubHasura({ RequestReviewRound: { insert_review_round_requests_one: { id: "r1" } } });
+    await expect(requestRound(form({ field_name: "website", kind: "gap", source_key: "website_discovery", size: "200", mode: "measure", title: "" })))
+      .rejects.toThrow(/NEXT_REDIRECT/);
+    expect(requests[0].role).toBe("manager");
+    expect(requests[0].variables).toEqual({ object: { field_name: "website", kind: "gap", source_key: null, size: 200, mode: "measure", title: null } });
+  });
+
+  it("sends nothing for a person without the role or for an invalid request", async () => {
+    const requests = stubHasura({});
+    await expect(deleteRound(form({ id: ROUND_ID }))).rejects.toThrow(/NEXT_REDIRECT/);
+    session.accessToken = tokenWith("manager");
+    await expect(requestRound(form({ field_name: "website", kind: "shown", size: "5000" }))).rejects.toThrow(/NEXT_REDIRECT/);
+    await expect(requestRound(form({ field_name: "website", kind: "shown", size: "10" }))).rejects.toThrow(/NEXT_REDIRECT/); // no source
+    expect(requests).toEqual([]);
+  });
+
+  it("deletes a round as manager", async () => {
+    session.accessToken = tokenWith("manager");
+    const requests = stubHasura({ DeleteReviewRound: { delete_review_rounds_by_pk: { id: ROUND_ID } } });
+    await expect(deleteRound(form({ id: ROUND_ID }))).rejects.toThrow(/NEXT_REDIRECT/);
+    expect(requests.map((r) => [r.operation, r.role, r.variables])).toEqual([["DeleteReviewRound", "manager", { id: ROUND_ID }]]);
   });
 });
