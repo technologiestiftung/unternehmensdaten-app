@@ -14,9 +14,6 @@ vi.mock("@/lib/auth", () => ({
   authOptions: () => ({}),
 }));
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
-/** An access token carrying Keycloak realm roles; its signature is Hasura's to check, never the app's. */
-const tokenWith = (...roles: string[]) =>
-  `h.${Buffer.from(JSON.stringify({ realm_access: { roles } })).toString("base64url")}.s`;
 afterEach(() => {
   session.accessToken = "token";
   vi.unstubAllEnvs();
@@ -26,7 +23,7 @@ afterEach(() => {
 
 const ROUND_ID = "00000000-0000-4000-8000-0000000000aa";
 const TASK_ID = "00000000-0000-4000-8000-0000000000bb";
-const ON = { ReviewSettings: { review_settings: [{ enabled: true }] } };
+const ON = { ReviewSettings: { review_settings: [{ enabled: true }] }, ReviewRoundRequests: { review_round_requests: [] } };
 const OFF = { ReviewSettings: { review_settings: [{ enabled: false }] } };
 const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
 
@@ -155,14 +152,8 @@ describe("managing rounds (#190)", () => {
     return error?.digest?.split(";")[2];
   };
 
-  it("offers the form, the requests and delete only to a manager", async () => {
-    stubHasura({ ...ON, ReviewRounds: { review_rounds: [round()] } });
-    const plain = text(renderToStaticMarkup(await ReviewRoundsPage()));
-    expect(plain).not.toContain("Neue Runde");
-    expect(plain).not.toContain("Löschen");
-
-    session.accessToken = tokenWith("user", "manager");
-    const requests = stubHasura({
+  it("offers every signed-in person the form, the requests and delete (no separate role yet)", async () => {
+    stubHasura({
       ...ON,
       ReviewRounds: { review_rounds: [round()] },
       ReviewRoundRequests: { review_round_requests: [{ id: "r1", field_name: "website", kind: "gap", source_key: null, size: 200, mode: "measure", title: null, status: "failed", error: "nothing to draw for website · gap · None", requested_at: "2026-11-11T10:00:00Z" }] },
@@ -172,45 +163,39 @@ describe("managing rounds (#190)", () => {
     expect(page).toContain("Grund: nothing to draw for website · gap · None");
     expect(page).toContain("Löscht die Runde mit 34 Antworten. Ihre Stimmen werden zurückgenommen");
     expect(page).toContain("Runde gelöscht, ihre Stimmen zurückgenommen.");
-    expect(requests.find((r) => r.operation === "ReviewRoundRequests")?.role).toBe("manager");
-    expect(requests.find((r) => r.operation === "ReviewRounds")?.role).toBeNull();
   });
 
-  it("asks for a round as manager, with a gap's source dropped", async () => {
-    session.accessToken = tokenWith("manager");
+  it("asks for a round, with a gap's source dropped", async () => {
     const requests = stubHasura({ RequestReviewRound: { insert_review_round_requests_one: { id: "r1" } } });
     await expect(requestRound(form({ field_name: "website", kind: "gap", source_key: "website_discovery", size: "200", mode: "measure", title: "" })))
       .rejects.toThrow(/NEXT_REDIRECT/);
-    expect(requests[0].role).toBe("manager");
     expect(requests[0].variables).toEqual({ object: { field_name: "website", kind: "gap", source_key: null, size: 200, mode: "measure", title: null } });
   });
 
-  it("sends nothing for a person without the role or for an invalid request", async () => {
+  it("sends nothing for an invalid request", async () => {
     const requests = stubHasura({});
-    await expect(deleteRound(form({ id: ROUND_ID }))).rejects.toThrow(/NEXT_REDIRECT/);
-    session.accessToken = tokenWith("manager");
+    await expect(deleteRound(form({ id: "not-a-round" }))).rejects.toThrow(/NEXT_REDIRECT/);
     await expect(requestRound(form({ field_name: "website", kind: "shown", size: "5000" }))).rejects.toThrow(/NEXT_REDIRECT/);
     await expect(requestRound(form({ field_name: "website", kind: "shown", size: "10" }))).rejects.toThrow(/NEXT_REDIRECT/); // no source
     expect(requests).toEqual([]);
   });
 
-  it("deletes a round as manager", async () => {
-    session.accessToken = tokenWith("manager");
+  it("deletes a round", async () => {
     const requests = stubHasura({ DeleteReviewRound: { delete_review_rounds_by_pk: { id: ROUND_ID } } });
     expect(await redirectTo(deleteRound(form({ id: ROUND_ID })))).toBe("/pruefen?meldung=deleted");
-    expect(requests.map((r) => [r.operation, r.role, r.variables])).toEqual([["DeleteReviewRound", "manager", { id: ROUND_ID }]]);
+    expect(requests.map((r) => [r.operation, r.variables])).toEqual([["DeleteReviewRound", { id: ROUND_ID }]]);
   });
 
   it("shows only its own messages, never text from the link", async () => {
     stubHasura({ ...ON, ReviewRounds: { review_rounds: [] } });
     const page = text(renderToStaticMarkup(await ReviewRoundsPage({ searchParams: Promise.resolve({ meldung: "Bitte neu anmelden unter evil.example" }) })));
     expect(page).not.toContain("evil.example");
-    const proto = text(renderToStaticMarkup(await ReviewRoundsPage({ searchParams: Promise.resolve({ meldung: "toString" }) })));
-    expect(proto).not.toContain("function");
+    // A built-in name (`toString`) is no message: no status line at all.
+    const proto = renderToStaticMarkup(await ReviewRoundsPage({ searchParams: Promise.resolve({ meldung: "toString" }) }));
+    expect(proto).not.toContain('role="status"');
   });
 
   it("refuses a kind or mode that is only an object's built-in name", async () => {
-    session.accessToken = tokenWith("manager");
     const requests = stubHasura({});
     expect(await redirectTo(requestRound(form({ field_name: "website", kind: "constructor", source_key: "s" })))).toBe("/pruefen?meldung=kind");
     expect(await redirectTo(requestRound(form({ field_name: "website", kind: "shown", source_key: "s", mode: "toString" })))).toBe("/pruefen?meldung=mode");
@@ -218,7 +203,6 @@ describe("managing rounds (#190)", () => {
   });
 
   it("comes back with a message when Hasura refuses, and says when the round is gone", async () => {
-    session.accessToken = tokenWith("manager");
     vi.spyOn(console, "error").mockImplementation(() => {});
     stubHasura({}); // every mutation answers with a GraphQL error
     expect(await redirectTo(requestRound(form({ field_name: "website", kind: "shown", source_key: "unknown" })))).toBe("/pruefen?meldung=failed");

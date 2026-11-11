@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { needsRefresh, realmRoles, REFRESH_MARGIN_S } from "./token";
+import { needsRefresh, REFRESH_MARGIN_S } from "./token";
 
 describe("needsRefresh", () => {
   it("keeps a token with time left", () => {
@@ -11,16 +11,5 @@ describe("needsRefresh", () => {
   });
   it("refreshes when the expiry is unknown", () => {
     expect(needsRefresh(undefined, 0)).toBe(true);
-  });
-});
-
-describe("realmRoles", () => {
-  const token = (payload: unknown) => `h.${Buffer.from(JSON.stringify(payload)).toString("base64url")}.s`;
-  it("reads Keycloak's realm roles", () => {
-    expect(realmRoles(token({ realm_access: { roles: ["user", "manager"] } }))).toEqual(["user", "manager"]);
-  });
-  it("gives none for a token without roles or one that is not a JWT", () => {
-    expect(realmRoles(token({ sub: "u1" }))).toEqual([]);
-    expect(realmRoles("not-a-jwt")).toEqual([]);
   });
 });

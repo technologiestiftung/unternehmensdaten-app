@@ -30,8 +30,8 @@ round of about 200 values of one source and field (richtig / falsch / ?, a reaso
 o), or fills gaps, with every option of the field in a side panel. Each answer is saved at once and becomes that
 person's vote. `/pruefen/<round>/ergebnis` shows the counts: precision, wrong answers by reason, by confidence and
 by evidence, and the round before. The switch is `review_settings.enabled` in the database, read on every request,
-so no deploy is needed; rounds are drawn in the other repo (unternehmensdatenbank #153). A person with the Keycloak
-realm role `manager` also sees, on `/pruefen`, a form to request a new round (a row in `review_round_requests`, drawn
+so no deploy is needed; rounds are drawn in the other repo (unternehmensdatenbank #153). Every signed-in person also sees, on
+`/pruefen` (no separate role yet), a form to request a new round (a row in `review_round_requests`, drawn
 by that repo within about 5 minutes; open and failed requests are listed with the reason), and can rename or delete a
 round (deleting takes back the votes of its answers). To remove it later, delete
 `src/app/pruefen/`, `src/lib/review.ts`, `src/lib/review-manage.ts` and the header entry in `src/app/layout.tsx`. It runs on the

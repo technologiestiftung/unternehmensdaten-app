@@ -1,14 +1,10 @@
 /**
- * Managing review rounds from the app (unternehmensdatenbank #190): a manager asks for a round, renames
- * one or deletes one. Only the Keycloak realm role `manager` (never `admin`: Hasura treats that role as
- * its superuser). A request is a row in `review_round_requests`; the DAG `review_round_requests` draws it
- * within 5 minutes. The app never talks to Airflow.
+ * Managing review rounds from the app (unternehmensdatenbank #190): any signed-in person asks for a round,
+ * renames one or deletes one (no separate role yet, decided 2026-11-11). A request is a row in
+ * `review_round_requests`; the DAG `review_round_requests` draws it within 5 minutes. The app never talks
+ * to Airflow.
  */
-import { realmRoles } from "./token";
 import { KIND_LABELS, MODE_LABELS, type Kind, type Mode } from "./review";
-
-export const MANAGER = "manager";
-export const isManager = (accessToken: string) => realmRoles(accessToken).includes(MANAGER);
 
 /** Same limits as the draw (`review_round.draw.MAX_SIZE`) and the CHECKs on review_round_requests. */
 export const MAX_SIZE = 1000;
@@ -64,9 +60,8 @@ export const DELETE_ROUND = `
     delete_review_rounds_by_pk(id: $id) { id }
   }`;
 
-/** What a manager's form says back (`?meldung=<key>`): fixed texts only, so a link cannot put words in the app's mouth. */
+/** What a form says back (`?meldung=<key>`): fixed texts only, so a link cannot put words in the app's mouth. */
 export const MESSAGES = {
-  forbidden: "Nur für die Rolle „manager“.",
   field: "Feld: Kleinbuchstaben und _, z. B. technology_field.",
   kind: "Art fehlt.",
   mode: "Modus fehlt.",
